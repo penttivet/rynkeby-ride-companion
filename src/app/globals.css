@@ -1,0 +1,69 @@
+@import url('https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@400;600;700;800&family=Barlow:wght@400;500;600&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --rynkeby-red: #C8102E;
+  --rynkeby-yellow: #FFD700;
+  --bg-dark: #0d1117;
+  --bg-card: #161b22;
+  --bg-surface: #21262d;
+  --text-primary: #f0f6fc;
+  --text-muted: #8b949e;
+}
+
+* {
+  -webkit-tap-highlight-color: transparent;
+}
+
+html, body {
+  background-color: var(--bg-dark);
+  color: var(--text-primary);
+  font-family: 'Barlow', sans-serif;
+  min-height: 100dvh;
+  overscroll-behavior: none;
+}
+
+/* Safe area support for notched iPhones */
+.pb-safe {
+  padding-bottom: calc(1rem + env(safe-area-inset-bottom));
+}
+
+.bottom-nav {
+  padding-bottom: env(safe-area-inset-bottom);
+}
+
+/* Smooth native-feel button press */
+button:active {
+  transform: scale(0.97);
+  transition: transform 0.08s ease;
+}
+
+/* Large tap targets for tired cyclists */
+.btn-lg {
+  min-height: 56px;
+  font-size: 1.1rem;
+  font-weight: 600;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  transition: all 0.15s ease;
+}
+
+.card {
+  background: var(--bg-card);
+  border: 1px solid rgba(255,255,255,0.08);
+  border-radius: 16px;
+  padding: 1.25rem;
+}
+
+.page-container {
+  max-width: 480px;
+  margin: 0 auto;
+  padding: 1rem;
+  padding-bottom: 6rem;
+}
