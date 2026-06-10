@@ -40,24 +40,55 @@ export default function ChatPage() {
         }),
       });
       const data = await res.json();
-      setMessages((prev) => [...prev, { role: "assistant", content: data.reply || "Error getting response." }]);
+      setMessages((prev) => [
+        ...prev,
+        { role: "assistant", content: data.reply || "Error getting response." },
+      ]);
     } catch {
-      setMessages((prev) => [...prev, { role: "assistant", content: "Connection error. Please try again." }]);
+      setMessages((prev) => [
+        ...prev,
+        { role: "assistant", content: "Connection error. Please try again." },
+      ]);
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div className="page" style={{ display: "flex", flexDirection: "column", height: "100dvh", padding: 0 }}>
+    <div style={{
+      position: "fixed",
+      top: 0,
+      left: 0,
+      right: 0,
+      bottom: 0,
+      display: "flex",
+      flexDirection: "column",
+      background: "var(--bg, #0d1117)",
+      fontFamily: "'Barlow', sans-serif",
+    }}>
       {/* Header */}
-      <div style={{ padding: "1rem 1rem 0.75rem", borderBottom: "1px solid rgba(255,255,255,0.08)" }}>
-        <h1 className="heading" style={{ fontSize: "1.4rem", marginBottom: 2 }}>🚴 RIDE ASSISTANT</h1>
-        <p style={{ color: "#8b949e", fontSize: "0.75rem" }}>Ask anything — FI / EN / DE / FR</p>
+      <div style={{
+        padding: "1rem 1rem 0.75rem",
+        borderBottom: "1px solid rgba(255,255,255,0.08)",
+        flexShrink: 0,
+      }}>
+        <h1 style={{ fontSize: "1.4rem", fontWeight: 800, color: "#fff", margin: 0, letterSpacing: 1 }}>
+          🚴 RIDE ASSISTANT
+        </h1>
+        <p style={{ color: "#8b949e", fontSize: "0.75rem", margin: "2px 0 0" }}>
+          Ask anything — FI / EN / DE / FR
+        </p>
       </div>
 
       {/* Messages */}
-      <div style={{ flex: 1, overflowY: "auto", padding: "1rem", display: "flex", flexDirection: "column", gap: "0.75rem" }}>
+      <div style={{
+        flex: 1,
+        overflowY: "auto",
+        padding: "1rem",
+        display: "flex",
+        flexDirection: "column",
+        gap: "0.75rem",
+      }}>
         {messages.map((msg, i) => (
           <div key={i} style={{
             display: "flex",
@@ -68,7 +99,7 @@ export default function ChatPage() {
               padding: "0.65rem 0.9rem",
               borderRadius: msg.role === "user" ? "16px 16px 4px 16px" : "16px 16px 16px 4px",
               background: msg.role === "user" ? "#C8102E" : "rgba(255,255,255,0.07)",
-              color: "var(--text)",
+              color: "#fff",
               fontSize: "0.9rem",
               lineHeight: 1.5,
               whiteSpace: "pre-wrap",
@@ -84,7 +115,8 @@ export default function ChatPage() {
               borderRadius: "16px 16px 16px 4px",
               background: "rgba(255,255,255,0.07)",
               color: "#8b949e",
-              fontSize: "0.9rem",
+              fontSize: "1.2rem",
+              letterSpacing: 3,
             }}>
               ···
             </div>
@@ -93,28 +125,35 @@ export default function ChatPage() {
         <div ref={bottomRef} />
       </div>
 
-      {/* Input */}
+      {/* Input bar — always at bottom */}
       <div style={{
         padding: "0.75rem 1rem",
         borderTop: "1px solid rgba(255,255,255,0.08)",
         display: "flex",
         gap: "0.5rem",
-        background: "var(--bg)",
+        background: "#0d1117",
+        flexShrink: 0,
+        paddingBottom: "calc(0.75rem + env(safe-area-inset-bottom))",
       }}>
         <input
           value={input}
           onChange={(e) => setInput(e.target.value)}
-          onKeyDown={(e) => e.key === "Enter" && !e.shiftKey && send()}
+          onKeyDown={(e) => {
+            if (e.key === "Enter" && !e.shiftKey) {
+              e.preventDefault();
+              send();
+            }
+          }}
           placeholder="Ask me anything..."
           style={{
             flex: 1,
             background: "rgba(255,255,255,0.06)",
-            border: "1px solid rgba(255,255,255,0.12)",
+            border: "1px solid rgba(255,255,255,0.18)",
             borderRadius: 12,
-            padding: "0.65rem 1rem",
-            color: "var(--text)",
+            padding: "0.75rem 1rem",
+            color: "#fff",
             fontFamily: "'Barlow', sans-serif",
-            fontSize: "0.95rem",
+            fontSize: "1rem",
             outline: "none",
           }}
         />
@@ -122,15 +161,15 @@ export default function ChatPage() {
           onClick={send}
           disabled={loading || !input.trim()}
           style={{
-            padding: "0.65rem 1.1rem",
+            padding: "0.75rem 1.2rem",
             borderRadius: 12,
             border: "none",
             background: loading || !input.trim() ? "rgba(200,16,46,0.3)" : "#C8102E",
             color: "#fff",
-            fontFamily: "'Barlow', sans-serif",
             fontWeight: 700,
-            fontSize: "0.95rem",
+            fontSize: "1.1rem",
             cursor: loading || !input.trim() ? "not-allowed" : "pointer",
+            flexShrink: 0,
           }}
         >
           ➤
