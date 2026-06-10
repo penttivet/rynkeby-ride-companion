@@ -1,5 +1,4 @@
 "use client";
-
 import "./globals.css";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
@@ -8,31 +7,38 @@ const navItems = [
   { href: "/", label: "Today", icon: "🏁" },
   { href: "/sos", label: "SOS", icon: "🆘" },
   { href: "/chat", label: "Chat", icon: "🤖" },
+  { href: "/team", label: "Team", icon: "🚴" },
   { href: "/translate", label: "Translate", icon: "🌍" },
   { href: "/support", label: "Support", icon: "🚗" },
 ];
 
 function BottomNav() {
   const pathname = usePathname();
-
   return (
     <nav
       className="fixed bottom-0 left-0 right-0 z-50 bottom-nav"
       style={{ background: "#0d1117", borderTop: "1px solid rgba(255,255,255,0.1)" }}
     >
-      <div className="flex max-w-480px mx-auto">
+      <div style={{ display: "flex", overflowX: "auto", scrollbarWidth: "none" }}>
         {navItems.map((item) => {
           const active = pathname === item.href;
           return (
             <Link
               key={item.href}
               href={item.href}
-              className="flex-1 flex flex-col items-center justify-center py-2 gap-0.5"
               style={{
-                color: active ? "var(--rynkeby-red)" : "var(--text-muted)",
+                flex: "0 0 auto",
+                minWidth: 64,
+                display: "flex",
+                flexDirection: "column",
+                alignItems: "center",
+                justifyContent: "center",
+                padding: "8px 4px",
+                gap: 2,
+                color: active ? "var(--rynkeby-red, #C8102E)" : "#8b949e",
                 fontFamily: "'Barlow Condensed', sans-serif",
                 fontWeight: active ? 700 : 400,
-                fontSize: "0.7rem",
+                fontSize: "0.65rem",
                 letterSpacing: "0.04em",
                 textTransform: "uppercase",
                 textDecoration: "none",
@@ -47,8 +53,8 @@ function BottomNav() {
                   style={{
                     display: "block",
                     height: "2px",
-                    width: "24px",
-                    background: "var(--rynkeby-red)",
+                    width: "20px",
+                    background: "var(--rynkeby-red, #C8102E)",
                     borderRadius: "2px",
                   }}
                 />
