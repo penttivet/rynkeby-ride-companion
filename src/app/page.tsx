@@ -60,7 +60,6 @@ export default function ChatPage() {
     setMessages(newMessages);
     setInput("");
     setLoading(true);
-
     try {
       const res = await fetch("/api/chat", {
         method: "POST",
@@ -79,7 +78,6 @@ export default function ChatPage() {
       setLoading(false);
     }
   };
-
   const toggleRecording = async () => {
     if (recording) {
       if (mediaRecorderRef.current) {
@@ -94,27 +92,23 @@ export default function ChatPage() {
           : MediaRecorder.isTypeSupported("audio/webm;codecs=opus")
           ? "audio/webm;codecs=opus"
           : "audio/webm";
-
         const mediaRecorder = new MediaRecorder(stream, { mimeType });
         mediaRecorderRef.current = mediaRecorder;
         chunksRef.current = [];
-
         mediaRecorder.ondataavailable = (e) => {
           if (e.data.size > 0) chunksRef.current.push(e.data);
         };
-
         mediaRecorder.onstop = async () => {
           stream.getTracks().forEach((t) => t.stop());
           if (chunksRef.current.length === 0) return;
           const blob = new Blob(chunksRef.current, { type: mimeType });
           await transcribeAndSend(blob, mimeType);
         };
-
         mediaRecorder.start(100);
         setRecording(true);
       } catch (err) {
         console.error("Mic error:", err);
-        alert("Microphone access denied. Please allow microphone access.");
+        alert("Microphone access denied.");
       }
     }
   };
@@ -126,11 +120,7 @@ export default function ChatPage() {
       const file = new File([blob], `audio.${ext}`, { type: mimeType });
       const formData = new FormData();
       formData.append("file", file);
-
-      const res = await fetch("/api/stt", {
-        method: "POST",
-        body: formData,
-      });
+      const res = await fetch("/api/stt", { method: "POST", body: formData });
       const data = await res.json();
       if (data.text && data.text.trim()) {
         await sendMessage(data.text);
@@ -144,47 +134,22 @@ export default function ChatPage() {
   };
 
   return (
-    <div style={{
-      display: "flex",
-      flexDirection: "column",
-      height: "100dvh",
-      paddingBottom: "64px",
-      background: "#0d1117",
-      fontFamily: "'Barlow', sans-serif",
-    }}>
-      <div style={{
-        padding: "1rem 1rem 0.75rem",
-        borderBottom: "1px solid rgba(255,255,255,0.08)",
-        flexShrink: 0,
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "space-between",
-      }}>
+    <div style={{ display: "flex", flexDirection: "column", height: "100dvh", paddingBottom: "64px", background: "#0d1117", fontFamily: "'Barlow', sans-serif" }}>
+      <div style={{ padding: "1rem 1rem 0.75rem", borderBottom: "1px solid rgba(255,255,255,0.08)", flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "space-between" }}>
         <div>
-          <h1 style={{ fontSize: "1.4rem", fontWeight: 800, color: "#fff", margin: 0, letterSpacing: 1 }}>
-            🚴 RIDE ASSISTANT
-          </h1>
+          <h1 style={{ fontSize: "1.4rem", fontWeight: 800, color: "#fff", margin: 0, letterSpacing: 1 }}>🚴 RIDE ASSISTANT</h1>
           <p style={{ color: recording ? "#C8102E" : speaking ? "#10b981" : "#8b949e", fontSize: "0.75rem", margin: "2px 0 0" }}>
             {recording ? "🔴 Recording... tap mic to stop" : speaking ? "🔊 Speaking..." : "FI / EN / DE / FR — tap mic to speak"}
           </p>
         </div>
         {speaking && (
-          <button onClick={stopSpeaking} style={{
-            padding: "6px 12px", borderRadius: 8, border: "1px solid rgba(16,185,129,0.3)",
-            background: "rgba(16,185,129,0.1)", color: "#10b981", fontSize: "0.8rem", cursor: "pointer",
-          }}>⏹ Stop</button>
+          <button onClick={stopSpeaking} style={{ padding: "6px 12px", borderRadius: 8, border: "1px solid rgba(16,185,129,0.3)", background: "rgba(16,185,129,0.1)", color: "#10b981", fontSize: "0.8rem", cursor: "pointer" }}>⏹ Stop</button>
         )}
       </div>
-
       <div style={{ flex: 1, overflowY: "auto", padding: "1rem", display: "flex", flexDirection: "column", gap: "0.75rem" }}>
         {messages.map((msg, i) => (
           <div key={i} style={{ display: "flex", justifyContent: msg.role === "user" ? "flex-end" : "flex-start" }}>
-            <div style={{
-              maxWidth: "82%", padding: "0.65rem 0.9rem",
-              borderRadius: msg.role === "user" ? "16px 16px 4px 16px" : "16px 16px 16px 4px",
-              background: msg.role === "user" ? "#C8102E" : "rgba(255,255,255,0.07)",
-              color: "#fff", fontSize: "0.9rem", lineHeight: 1.5, whiteSpace: "pre-wrap",
-            }}>
+            <div style={{ maxWidth: "82%", padding: "0.65rem 0.9rem", borderRadius: msg.role === "user" ? "16px 16px 4px 16px" : "16px 16px 16px 4px", background: msg.role === "user" ? "#C8102E" : "rgba(255,255,255,0.07)", color: "#fff", fontSize: "0.9rem", lineHeight: 1.5, whiteSpace: "pre-wrap" }}>
               {msg.content}
             </div>
           </div>
@@ -196,45 +161,20 @@ export default function ChatPage() {
         )}
         <div ref={bottomRef} />
       </div>
-
-      <div style={{
-        padding: "0.75rem 1rem", borderTop: "1px solid rgba(255,255,255,0.08)",
-        display: "flex", gap: "0.5rem", background: "#0d1117", flexShrink: 0, alignItems: "center",
-      }}>
-        <button
-          onClick={toggleRecording}
-          disabled={loading && !recording}
-          style={{
-            width: 48, height: 48, borderRadius: "50%", border: "none",
-            background: recording ? "#C8102E" : "rgba(200,16,46,0.2)",
-            color: "#fff", fontSize: "1.3rem", cursor: "pointer", flexShrink: 0,
-            display: "flex", alignItems: "center", justifyContent: "center",
-            boxShadow: recording ? "0 0 0 4px rgba(200,16,46,0.4)" : "none",
-            transition: "all 0.2s",
-          }}
-        >{recording ? "⏹" : "🎤"}</button>
-
-        <input
-          value={input}
-          onChange={(e) => setInput(e.target.value)}
+      <div style={{ padding: "0.75rem 1rem", borderTop: "1px solid rgba(255,255,255,0.08)", display: "flex", gap: "0.5rem", background: "#0d1117", flexShrink: 0, alignItems: "center" }}>
+        <button onClick={toggleRecording} disabled={loading && !recording}
+          style={{ width: 48, height: 48, borderRadius: "50%", border: "none", background: recording ? "#C8102E" : "rgba(200,16,46,0.2)", color: "#fff", fontSize: "1.3rem", cursor: "pointer", flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center", boxShadow: recording ? "0 0 0 4px rgba(200,16,46,0.4)" : "none", transition: "all 0.2s" }}>
+          {recording ? "⏹" : "🎤"}
+        </button>
+        <input value={input} onChange={(e) => setInput(e.target.value)}
           onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); sendMessage(input); } }}
           placeholder="Or type here..."
-          style={{
-            flex: 1, background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.18)",
-            borderRadius: 12, padding: "0.75rem 1rem", color: "#fff",
-            fontFamily: "'Barlow', sans-serif", fontSize: "1rem", outline: "none",
-          }}
+          style={{ flex: 1, background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.18)", borderRadius: 12, padding: "0.75rem 1rem", color: "#fff", fontFamily: "'Barlow', sans-serif", fontSize: "1rem", outline: "none" }}
         />
-        <button
-          onClick={() => sendMessage(input)}
-          disabled={loading || !input.trim()}
-          style={{
-            padding: "0.75rem 1.1rem", borderRadius: 12, border: "none",
-            background: loading || !input.trim() ? "rgba(200,16,46,0.3)" : "#C8102E",
-            color: "#fff", fontWeight: 700, fontSize: "1.1rem",
-            cursor: loading || !input.trim() ? "not-allowed" : "pointer", flexShrink: 0,
-          }}
-        >➤</button>
+        <button onClick={() => sendMessage(input)} disabled={loading || !input.trim()}
+          style={{ padding: "0.75rem 1.1rem", borderRadius: 12, border: "none", background: loading || !input.trim() ? "rgba(200,16,46,0.3)" : "#C8102E", color: "#fff", fontWeight: 700, fontSize: "1.1rem", cursor: loading || !input.trim() ? "not-allowed" : "pointer", flexShrink: 0 }}>
+          ➤
+        </button>
       </div>
     </div>
   );
