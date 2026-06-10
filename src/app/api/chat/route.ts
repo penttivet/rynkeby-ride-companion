@@ -12,12 +12,19 @@ RIDE INFORMATION:
 - Stage 7: July 10 — Creil sur Oise → Paris, 70 km, Start 08:00, ETA 13:00, Hotel: Novotel Charenton Paris
 
 LANGUAGES: Respond in the same language the user writes in. You speak Finnish, English, German, and French fluently.
-
 TRANSLATION: If asked to translate something, do so immediately and clearly.
-
-ROLE: Be friendly, encouraging, and practical. You know the route, the stages, the hotels, and can help with communication in German and French if cyclists need to talk to locals.`;
+ROLE: Be friendly, encouraging, and practical.`;
 
 export async function POST(req: NextRequest) {
+  const apiKey = process.env.ANTHROPIC_API_KEY;
+  
+  console.log("API key present:", !!apiKey);
+  console.log("API key prefix:", apiKey?.substring(0, 15));
+
+  if (!apiKey) {
+    return NextResponse.json({ error: "API key missing" }, { status: 500 });
+  }
+
   try {
     const { messages } = await req.json();
 
@@ -25,7 +32,7 @@ export async function POST(req: NextRequest) {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        "x-api-key": process.env.ANTHROPIC_API_KEY || "",
+        "x-api-key": apiKey,
         "anthropic-version": "2023-06-01",
       },
       body: JSON.stringify({
@@ -36,11 +43,15 @@ export async function POST(req: NextRequest) {
       }),
     });
 
+    const responseText = await response.text();
+    console.log("Anthropic response status:", response.status);
+    console.log("Anthropic response:", responseText.substring(0, 200));
+
     if (!response.ok) {
-      throw new Error(`API error: ${response.status}`);
+      throw new Error(`API error: ${response.status} - ${responseText}`);
     }
 
-    const data = await response.json();
+    const data = JSON.parse(responseText);
     const text = data.content?.[0]?.text || "Sorry, no response.";
     return NextResponse.json({ reply: text });
   } catch (error) {
