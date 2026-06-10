@@ -56,13 +56,10 @@ export default function ChatPage() {
 
   return (
     <div style={{
-      position: "fixed",
-      top: 0,
-      left: 0,
-      right: 0,
-      bottom: 0,
       display: "flex",
       flexDirection: "column",
+      height: "100dvh",
+      paddingBottom: "64px", /* height of bottom nav */
       background: "var(--bg, #0d1117)",
       fontFamily: "'Barlow', sans-serif",
     }}>
@@ -125,7 +122,7 @@ export default function ChatPage() {
         <div ref={bottomRef} />
       </div>
 
-      {/* Input bar — always at bottom */}
+      {/* Input bar */}
       <div style={{
         padding: "0.75rem 1rem",
         borderTop: "1px solid rgba(255,255,255,0.08)",
@@ -133,7 +130,6 @@ export default function ChatPage() {
         gap: "0.5rem",
         background: "#0d1117",
         flexShrink: 0,
-        paddingBottom: "calc(0.75rem + env(safe-area-inset-bottom))",
       }}>
         <input
           value={input}
