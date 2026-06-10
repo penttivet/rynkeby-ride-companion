@@ -10,26 +10,61 @@ export default function ChatPage() {
   const [messages, setMessages] = useState<Message[]>([
     {
       role: "assistant",
-      content: "Hei! Olen Rynkeby Ride Assistant 🚴 Voin auttaa reittiinfossa, käännöksissä ja muissa kysymyksissä. Kirjoita suomeksi, englanniksi, saksaksi tai ranskaksi!\n\nHello! I'm your Rynkeby Ride Assistant. I can help with route info, translations, and any questions. Write in Finnish, English, German, or French!",
+      content: "Hei! Olen Rynkeby Ride Assistant 🚴 Voin auttaa reittiinfossa, käännöksissä ja muissa kysymyksissä. Paina mikrofonia ja puhu, tai kirjoita!\n\nHello! Press the mic and speak, or type your message!",
     },
   ]);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
+  const [recording, setRecording] = useState(false);
+  const [speaking, setSpeaking] = useState(false);
   const bottomRef = useRef<HTMLDivElement>(null);
+  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
+  const chunksRef = useRef<Blob[]>([]);
+  const audioRef = useRef<HTMLAudioElement | null>(null);
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
-  const send = async () => {
-    const text = input.trim();
-    if (!text || loading) return;
+  const speak = async (text: string) => {
+    try {
+      setSpeaking(true);
+      const res = await fetch("/api/tts", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ text }),
+      });
+      if (!res.ok) throw new Error("TTS failed");
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const audio = new Audio(url);
+      audioRef.current = audio;
+      audio.onended = () => {
+        setSpeaking(false);
+        URL.revokeObjectURL(url);
+      };
+      audio.play();
+    } catch {
+      setSpeaking(false);
+    }
+  };
 
+  const stopSpeaking = () => {
+    if (audioRef.current) {
+      audioRef.current.pause();
+      audioRef.current = null;
+    }
+    setSpeaking(false);
+  };
+
+  const sendMessage = async (text: string) => {
+    if (!text.trim() || loading) return;
     const userMsg: Message = { role: "user", content: text };
     const newMessages = [...messages, userMsg];
     setMessages(newMessages);
     setInput("");
     setLoading(true);
+    stopSpeaking();
 
     try {
       const res = await fetch("/api/chat", {
@@ -40,16 +75,66 @@ export default function ChatPage() {
         }),
       });
       const data = await res.json();
-      setMessages((prev) => [
-        ...prev,
-        { role: "assistant", content: data.reply || "Error getting response." },
-      ]);
+      const reply = data.reply || "Error getting response.";
+      setMessages((prev) => [...prev, { role: "assistant", content: reply }]);
+      speak(reply);
     } catch {
-      setMessages((prev) => [
-        ...prev,
-        { role: "assistant", content: "Connection error. Please try again." },
-      ]);
+      setMessages((prev) => [...prev, { role: "assistant", content: "Connection error." }]);
     } finally {
+      setLoading(false);
+    }
+  };
+
+  const startRecording = async () => {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      const mimeType = MediaRecorder.isTypeSupported("audio/mp4") ? "audio/mp4" : "audio/webm";
+      const mediaRecorder = new MediaRecorder(stream, { mimeType });
+      mediaRecorderRef.current = mediaRecorder;
+      chunksRef.current = [];
+
+      mediaRecorder.ondataavailable = (e) => {
+        if (e.data.size > 0) chunksRef.current.push(e.data);
+      };
+
+      mediaRecorder.onstop = async () => {
+        stream.getTracks().forEach((t) => t.stop());
+        const blob = new Blob(chunksRef.current, { type: mimeType });
+        await transcribeAndSend(blob, mimeType);
+      };
+
+      mediaRecorder.start();
+      setRecording(true);
+    } catch {
+      alert("Microphone access denied. Please allow microphone in browser settings.");
+    }
+  };
+
+  const stopRecording = () => {
+    if (mediaRecorderRef.current && recording) {
+      mediaRecorderRef.current.stop();
+      setRecording(false);
+    }
+  };
+
+  const transcribeAndSend = async (blob: Blob, mimeType: string) => {
+    setLoading(true);
+    try {
+      const formData = new FormData();
+      const ext = mimeType.includes("mp4") ? "mp4" : "webm";
+      formData.append("file", blob, `audio.${ext}`);
+
+      const res = await fetch("/api/stt", {
+        method: "POST",
+        body: formData,
+      });
+      const data = await res.json();
+      if (data.text) {
+        await sendMessage(data.text);
+      } else {
+        setLoading(false);
+      }
+    } catch {
       setLoading(false);
     }
   };
@@ -59,8 +144,8 @@ export default function ChatPage() {
       display: "flex",
       flexDirection: "column",
       height: "100dvh",
-      paddingBottom: "64px", /* height of bottom nav */
-      background: "var(--bg, #0d1117)",
+      paddingBottom: "64px",
+      background: "#0d1117",
       fontFamily: "'Barlow', sans-serif",
     }}>
       {/* Header */}
@@ -68,13 +153,26 @@ export default function ChatPage() {
         padding: "1rem 1rem 0.75rem",
         borderBottom: "1px solid rgba(255,255,255,0.08)",
         flexShrink: 0,
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "space-between",
       }}>
-        <h1 style={{ fontSize: "1.4rem", fontWeight: 800, color: "#fff", margin: 0, letterSpacing: 1 }}>
-          🚴 RIDE ASSISTANT
-        </h1>
-        <p style={{ color: "#8b949e", fontSize: "0.75rem", margin: "2px 0 0" }}>
-          Ask anything — FI / EN / DE / FR
-        </p>
+        <div>
+          <h1 style={{ fontSize: "1.4rem", fontWeight: 800, color: "#fff", margin: 0, letterSpacing: 1 }}>
+            🚴 RIDE ASSISTANT
+          </h1>
+          <p style={{ color: "#8b949e", fontSize: "0.75rem", margin: "2px 0 0" }}>
+            {speaking ? "🔊 Speaking..." : "FI / EN / DE / FR — tap mic to speak"}
+          </p>
+        </div>
+        {speaking && (
+          <button onClick={stopSpeaking} style={{
+            padding: "6px 12px", borderRadius: 8, border: "1px solid rgba(200,16,46,0.3)",
+            background: "rgba(200,16,46,0.1)", color: "#C8102E", fontSize: "0.8rem", cursor: "pointer",
+          }}>
+            ⏹ Stop
+          </button>
+        )}
       </div>
 
       {/* Messages */}
@@ -114,9 +212,7 @@ export default function ChatPage() {
               color: "#8b949e",
               fontSize: "1.2rem",
               letterSpacing: 3,
-            }}>
-              ···
-            </div>
+            }}>···</div>
           </div>
         )}
         <div ref={bottomRef} />
@@ -130,17 +226,43 @@ export default function ChatPage() {
         gap: "0.5rem",
         background: "#0d1117",
         flexShrink: 0,
+        alignItems: "center",
       }}>
+        {/* Mic button */}
+        <button
+          onPointerDown={startRecording}
+          onPointerUp={stopRecording}
+          onPointerLeave={stopRecording}
+          disabled={loading}
+          style={{
+            width: 48, height: 48,
+            borderRadius: "50%",
+            border: "none",
+            background: recording ? "#C8102E" : "rgba(200,16,46,0.2)",
+            color: "#fff",
+            fontSize: "1.3rem",
+            cursor: loading ? "not-allowed" : "pointer",
+            flexShrink: 0,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            boxShadow: recording ? "0 0 0 4px rgba(200,16,46,0.3)" : "none",
+            transition: "all 0.15s",
+          }}
+        >
+          {recording ? "⏹" : "🎤"}
+        </button>
+
         <input
           value={input}
           onChange={(e) => setInput(e.target.value)}
           onKeyDown={(e) => {
             if (e.key === "Enter" && !e.shiftKey) {
               e.preventDefault();
-              send();
+              sendMessage(input);
             }
           }}
-          placeholder="Ask me anything..."
+          placeholder="Or type here..."
           style={{
             flex: 1,
             background: "rgba(255,255,255,0.06)",
@@ -154,10 +276,10 @@ export default function ChatPage() {
           }}
         />
         <button
-          onClick={send}
+          onClick={() => sendMessage(input)}
           disabled={loading || !input.trim()}
           style={{
-            padding: "0.75rem 1.2rem",
+            padding: "0.75rem 1.1rem",
             borderRadius: 12,
             border: "none",
             background: loading || !input.trim() ? "rgba(200,16,46,0.3)" : "#C8102E",
@@ -167,9 +289,7 @@ export default function ChatPage() {
             cursor: loading || !input.trim() ? "not-allowed" : "pointer",
             flexShrink: 0,
           }}
-        >
-          ➤
-        </button>
+        >➤</button>
       </div>
     </div>
   );
