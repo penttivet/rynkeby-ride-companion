@@ -74,14 +74,14 @@ export default function ChatPage() {
       setStatus("Recording...");
     };
 
-    recognition.onresult = (event: SpeechRecognitionEvent) => {
+    recognition.onresult = (event: any) => {
       const transcript = event.results[0][0].transcript;
       setRecording(false);
       setStatus("");
       sendMessage(transcript);
     };
 
-    recognition.onerror = (event: SpeechRecognitionErrorEvent) => {
+    recognition.onerror = (event: any) => {
       setRecording(false);
       setStatus("Mic error: " + event.error);
     };
