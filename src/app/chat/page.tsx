@@ -1,240 +1,125 @@
 "use client";
 import { useState, useRef, useEffect } from "react";
 
-interface Message {
-  role: "user" | "assistant";
-  content: string;
-}
+interface Message { role: "user" | "assistant"; content: string; }
 
 export default function ChatPage() {
-  const [messages, setMessages] = useState<Message[]>([
-    {
-      role: "assistant",
-      content: "Hei! Olen Rynkeby Ride Assistant 🚴 Paina mikrofonia → puhu → paina uudelleen lopettaaksesi.\n\nHello! Tap mic → speak → tap again to stop.",
-    },
-  ]);
+  const [messages, setMessages] = useState<Message[]>([{ role: "assistant", content: "Hei! Olen Rynkeby Ride Assistant 🚴 Paina mikrofonia ja puhu — tai kirjoita!\n\nHello! Press mic and speak — or type!" }]);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
   const [recording, setRecording] = useState(false);
   const [speaking, setSpeaking] = useState(false);
+  const [status, setStatus] = useState("");
   const bottomRef = useRef<HTMLDivElement>(null);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const chunksRef = useRef<Blob[]>([]);
   const audioRef = useRef<HTMLAudioElement | null>(null);
 
-  useEffect(() => {
-    bottomRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [messages]);
+  useEffect(() => { bottomRef.current?.scrollIntoView({ behavior: "smooth" }); }, [messages]);
 
   const speak = async (text: string) => {
     try {
       setSpeaking(true);
-      const res = await fetch("/api/tts", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ text }),
-      });
-      if (!res.ok) throw new Error("TTS failed");
+      const res = await fetch("/api/tts", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ text }) });
+      if (!res.ok) { setSpeaking(false); return; }
       const blob = await res.blob();
       const url = URL.createObjectURL(blob);
       const audio = new Audio(url);
       audioRef.current = audio;
       audio.onended = () => { setSpeaking(false); URL.revokeObjectURL(url); };
       audio.onerror = () => setSpeaking(false);
-      await audio.play();
-    } catch {
-      setSpeaking(false);
-    }
-  };
-
-  const stopSpeaking = () => {
-    if (audioRef.current) { audioRef.current.pause(); audioRef.current = null; }
-    setSpeaking(false);
+      audio.play().catch(() => setSpeaking(false));
+    } catch { setSpeaking(false); }
   };
 
   const sendMessage = async (text: string) => {
     if (!text.trim() || loading) return;
-    stopSpeaking();
+    if (audioRef.current) { audioRef.current.pause(); audioRef.current = null; setSpeaking(false); }
     const userMsg: Message = { role: "user", content: text };
     const newMessages = [...messages, userMsg];
     setMessages(newMessages);
     setInput("");
     setLoading(true);
-
     try {
-      const res = await fetch("/api/chat", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          messages: newMessages.map((m) => ({ role: m.role, content: m.content })),
-        }),
-      });
+      const res = await fetch("/api/chat", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ messages: newMessages }) });
       const data = await res.json();
-      const reply = data.reply || "Error getting response.";
-      setMessages((prev) => [...prev, { role: "assistant", content: reply }]);
-      await speak(reply);
-    } catch {
-      setMessages((prev) => [...prev, { role: "assistant", content: "Connection error." }]);
-    } finally {
-      setLoading(false);
-    }
+      const reply = data.reply || "Error";
+      setMessages(prev => [...prev, { role: "assistant", content: reply }]);
+      speak(reply);
+    } catch { setMessages(prev => [...prev, { role: "assistant", content: "Connection error." }]); }
+    finally { setLoading(false); }
   };
 
-  const toggleRecording = async () => {
+  const toggleMic = async () => {
     if (recording) {
-      if (mediaRecorderRef.current) {
-        mediaRecorderRef.current.stop();
-      }
+      mediaRecorderRef.current?.stop();
       setRecording(false);
-    } else {
-      try {
-        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-        const mimeType = MediaRecorder.isTypeSupported("audio/mp4")
-          ? "audio/mp4"
-          : MediaRecorder.isTypeSupported("audio/webm;codecs=opus")
-          ? "audio/webm;codecs=opus"
-          : "audio/webm";
-
-        const mediaRecorder = new MediaRecorder(stream, { mimeType });
-        mediaRecorderRef.current = mediaRecorder;
-        chunksRef.current = [];
-
-        mediaRecorder.ondataavailable = (e) => {
-          if (e.data.size > 0) chunksRef.current.push(e.data);
-        };
-
-        mediaRecorder.onstop = async () => {
-          stream.getTracks().forEach((t) => t.stop());
-          if (chunksRef.current.length === 0) return;
-          const blob = new Blob(chunksRef.current, { type: mimeType });
-          await transcribeAndSend(blob, mimeType);
-        };
-
-        mediaRecorder.start(100);
-        setRecording(true);
-      } catch (err) {
-        console.error("Mic error:", err);
-        alert("Microphone access denied. Please allow microphone access.");
-      }
+      setStatus("");
+      return;
     }
-  };
-
-  const transcribeAndSend = async (blob: Blob, mimeType: string) => {
-    setLoading(true);
     try {
-      const ext = mimeType.includes("mp4") ? "m4a" : "webm";
-      const file = new File([blob], `audio.${ext}`, { type: mimeType });
-      const formData = new FormData();
-      formData.append("file", file);
-
-      const res = await fetch("/api/stt", {
-        method: "POST",
-        body: formData,
-      });
-      const data = await res.json();
-      if (data.text && data.text.trim()) {
-        await sendMessage(data.text);
-      } else {
-        setLoading(false);
-      }
-    } catch (err) {
-      console.error("STT error:", err);
-      setLoading(false);
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
+      const mimeType = ["audio/mp4", "audio/webm;codecs=opus", "audio/webm", "audio/ogg"].find(t => MediaRecorder.isTypeSupported(t)) || "";
+      const mr = new MediaRecorder(stream, mimeType ? { mimeType } : {});
+      mediaRecorderRef.current = mr;
+      chunksRef.current = [];
+      mr.ondataavailable = (e) => { if (e.data && e.data.size > 0) chunksRef.current.push(e.data); };
+      mr.onstop = async () => {
+        stream.getTracks().forEach(t => t.stop());
+        const chunks = chunksRef.current;
+        if (!chunks.length) { setStatus("No audio captured"); return; }
+        const blob = new Blob(chunks, { type: mimeType || "audio/webm" });
+        setStatus("Transcribing...");
+        setLoading(true);
+        try {
+          const ext = mimeType.includes("mp4") ? "m4a" : mimeType.includes("ogg") ? "ogg" : "webm";
+          const file = new File([blob], `audio.${ext}`, { type: blob.type });
+          const fd = new FormData();
+          fd.append("file", file);
+          const res = await fetch("/api/stt", { method: "POST", body: fd });
+          const data = await res.json();
+          if (data.text?.trim()) {
+            setStatus("");
+            await sendMessage(data.text);
+          } else {
+            setStatus("Could not understand audio");
+            setLoading(false);
+          }
+        } catch (e) { setStatus("STT error"); setLoading(false); }
+      };
+      mr.start(250);
+      setRecording(true);
+      setStatus("Recording...");
+    } catch (e: unknown) {
+      const msg = e instanceof Error ? e.message : String(e);
+      setStatus("Mic error: " + msg);
     }
   };
 
   return (
-    <div style={{
-      display: "flex",
-      flexDirection: "column",
-      height: "100dvh",
-      paddingBottom: "64px",
-      background: "#0d1117",
-      fontFamily: "'Barlow', sans-serif",
-    }}>
-      <div style={{
-        padding: "1rem 1rem 0.75rem",
-        borderBottom: "1px solid rgba(255,255,255,0.08)",
-        flexShrink: 0,
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "space-between",
-      }}>
+    <div style={{ display: "flex", flexDirection: "column", height: "100dvh", paddingBottom: "64px", background: "#0d1117", fontFamily: "'Barlow', sans-serif" }}>
+      <div style={{ padding: "1rem 1rem 0.75rem", borderBottom: "1px solid rgba(255,255,255,0.08)", flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "space-between" }}>
         <div>
-          <h1 style={{ fontSize: "1.4rem", fontWeight: 800, color: "#fff", margin: 0, letterSpacing: 1 }}>
-            🚴 RIDE ASSISTANT
-          </h1>
-          <p style={{ color: recording ? "#C8102E" : speaking ? "#10b981" : "#8b949e", fontSize: "0.75rem", margin: "2px 0 0" }}>
-            {recording ? "🔴 Recording... tap mic to stop" : speaking ? "🔊 Speaking..." : "FI / EN / DE / FR — tap mic to speak"}
+          <h1 style={{ fontSize: "1.4rem", fontWeight: 800, color: "#fff", margin: 0 }}>🚴 RIDE ASSISTANT</h1>
+          <p style={{ fontSize: "0.75rem", margin: "2px 0 0", color: recording ? "#C8102E" : speaking ? "#10b981" : status ? "#f59e0b" : "#8b949e" }}>
+            {recording ? "🔴 Recording — tap to stop" : speaking ? "🔊 Speaking..." : status || "FI / EN / DE / FR"}
           </p>
         </div>
-        {speaking && (
-          <button onClick={stopSpeaking} style={{
-            padding: "6px 12px", borderRadius: 8, border: "1px solid rgba(16,185,129,0.3)",
-            background: "rgba(16,185,129,0.1)", color: "#10b981", fontSize: "0.8rem", cursor: "pointer",
-          }}>⏹ Stop</button>
-        )}
+        {speaking && <button onClick={() => { audioRef.current?.pause(); audioRef.current = null; setSpeaking(false); }} style={{ padding: "6px 12px", borderRadius: 8, border: "1px solid rgba(16,185,129,0.3)", background: "rgba(16,185,129,0.1)", color: "#10b981", fontSize: "0.8rem", cursor: "pointer" }}>⏹ Stop</button>}
       </div>
-
       <div style={{ flex: 1, overflowY: "auto", padding: "1rem", display: "flex", flexDirection: "column", gap: "0.75rem" }}>
         {messages.map((msg, i) => (
           <div key={i} style={{ display: "flex", justifyContent: msg.role === "user" ? "flex-end" : "flex-start" }}>
-            <div style={{
-              maxWidth: "82%", padding: "0.65rem 0.9rem",
-              borderRadius: msg.role === "user" ? "16px 16px 4px 16px" : "16px 16px 16px 4px",
-              background: msg.role === "user" ? "#C8102E" : "rgba(255,255,255,0.07)",
-              color: "#fff", fontSize: "0.9rem", lineHeight: 1.5, whiteSpace: "pre-wrap",
-            }}>
-              {msg.content}
-            </div>
+            <div style={{ maxWidth: "82%", padding: "0.65rem 0.9rem", borderRadius: msg.role === "user" ? "16px 16px 4px 16px" : "16px 16px 16px 4px", background: msg.role === "user" ? "#C8102E" : "rgba(255,255,255,0.07)", color: "#fff", fontSize: "0.9rem", lineHeight: 1.5, whiteSpace: "pre-wrap" }}>{msg.content}</div>
           </div>
         ))}
-        {loading && (
-          <div style={{ display: "flex", justifyContent: "flex-start" }}>
-            <div style={{ padding: "0.65rem 0.9rem", borderRadius: "16px 16px 16px 4px", background: "rgba(255,255,255,0.07)", color: "#8b949e", fontSize: "1.2rem", letterSpacing: 3 }}>···</div>
-          </div>
-        )}
+        {loading && <div style={{ display: "flex", justifyContent: "flex-start" }}><div style={{ padding: "0.65rem 0.9rem", borderRadius: "16px 16px 16px 4px", background: "rgba(255,255,255,0.07)", color: "#8b949e", fontSize: "1.2rem", letterSpacing: 3 }}>···</div></div>}
         <div ref={bottomRef} />
       </div>
-
-      <div style={{
-        padding: "0.75rem 1rem", borderTop: "1px solid rgba(255,255,255,0.08)",
-        display: "flex", gap: "0.5rem", background: "#0d1117", flexShrink: 0, alignItems: "center",
-      }}>
-        <button
-          onClick={toggleRecording}
-          disabled={loading && !recording}
-          style={{
-            width: 48, height: 48, borderRadius: "50%", border: "none",
-            background: recording ? "#C8102E" : "rgba(200,16,46,0.2)",
-            color: "#fff", fontSize: "1.3rem", cursor: "pointer", flexShrink: 0,
-            display: "flex", alignItems: "center", justifyContent: "center",
-            boxShadow: recording ? "0 0 0 4px rgba(200,16,46,0.4)" : "none",
-            transition: "all 0.2s",
-          }}
-        >{recording ? "⏹" : "🎤"}</button>
-
-        <input
-          value={input}
-          onChange={(e) => setInput(e.target.value)}
-          onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); sendMessage(input); } }}
-          placeholder="Or type here..."
-          style={{
-            flex: 1, background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.18)",
-            borderRadius: 12, padding: "0.75rem 1rem", color: "#fff",
-            fontFamily: "'Barlow', sans-serif", fontSize: "1rem", outline: "none",
-          }}
-        />
-        <button
-          onClick={() => sendMessage(input)}
-          disabled={loading || !input.trim()}
-          style={{
-            padding: "0.75rem 1.1rem", borderRadius: 12, border: "none",
-            background: loading || !input.trim() ? "rgba(200,16,46,0.3)" : "#C8102E",
-            color: "#fff", fontWeight: 700, fontSize: "1.1rem",
-            cursor: loading || !input.trim() ? "not-allowed" : "pointer", flexShrink: 0,
-          }}
-        >➤</button>
+      <div style={{ padding: "0.75rem 1rem", borderTop: "1px solid rgba(255,255,255,0.08)", display: "flex", gap: "0.5rem", background: "#0d1117", flexShrink: 0, alignItems: "center" }}>
+        <button onClick={toggleMic} disabled={loading && !recording} style={{ width: 48, height: 48, borderRadius: "50%", border: "none", background: recording ? "#C8102E" : "rgba(200,16,46,0.2)", color: "#fff", fontSize: "1.3rem", cursor: "pointer", flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center", boxShadow: recording ? "0 0 0 4px rgba(200,16,46,0.3)" : "none", transition: "all 0.2s" }}>{recording ? "⏹" : "🎤"}</button>
+        <input value={input} onChange={e => setInput(e.target.value)} onKeyDown={e => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); sendMessage(input); } }} placeholder="Or type here..." style={{ flex: 1, background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.18)", borderRadius: 12, padding: "0.75rem 1rem", color: "#fff", fontFamily: "'Barlow', sans-serif", fontSize: "1rem", outline: "none" }} />
+        <button onClick={() => sendMessage(input)} disabled={loading || !input.trim()} style={{ padding: "0.75rem 1.1rem", borderRadius: 12, border: "none", background: loading || !input.trim() ? "rgba(200,16,46,0.3)" : "#C8102E", color: "#fff", fontWeight: 700, fontSize: "1.1rem", cursor: loading || !input.trim() ? "not-allowed" : "pointer", flexShrink: 0 }}>➤</button>
       </div>
     </div>
   );
