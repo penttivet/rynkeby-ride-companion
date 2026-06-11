@@ -10,13 +10,14 @@ export default function ChatPage() {
   const [messages, setMessages] = useState<Message[]>([
     {
       role: "assistant",
-      content: "Hei! Olen Rynkeby Ride Assistant 🚴 Voin auttaa reittiinfossa, käännöksissä ja muissa kysymyksissä. Paina mikrofonia ja puhu, tai kirjoita!\n\nHello! Press the mic and speak, or type your message!",
+      content: "Hei! Olen Rynkeby Ride Assistant 🚴 Paina mikrofonia ja puhu — tai kirjoita!\n\nHello! Press mic and speak — or type!",
     },
   ]);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
   const [recording, setRecording] = useState(false);
   const [speaking, setSpeaking] = useState(false);
+  const [sttStatus, setSttStatus] = useState<string>("");
   const bottomRef = useRef<HTMLDivElement>(null);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const chunksRef = useRef<Blob[]>([]);
@@ -85,35 +86,44 @@ export default function ChatPage() {
     }
   };
 
-  const startRecording = async () => {
-    try {
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      const mimeType = MediaRecorder.isTypeSupported("audio/mp4") ? "audio/mp4" : "audio/webm";
-      const mediaRecorder = new MediaRecorder(stream, { mimeType });
-      mediaRecorderRef.current = mediaRecorder;
-      chunksRef.current = [];
+  const toggleRecording = async () => {
+    if (recording) {
+      // Stop recording
+      if (mediaRecorderRef.current) {
+        mediaRecorderRef.current.stop();
+        setRecording(false);
+        setSttStatus("Processing...");
+      }
+    } else {
+      // Start recording
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        const mimeType = MediaRecorder.isTypeSupported("audio/mp4")
+          ? "audio/mp4"
+          : MediaRecorder.isTypeSupported("audio/webm")
+          ? "audio/webm"
+          : "audio/mp4";
 
-      mediaRecorder.ondataavailable = (e) => {
-        if (e.data.size > 0) chunksRef.current.push(e.data);
-      };
+        const mediaRecorder = new MediaRecorder(stream, { mimeType });
+        mediaRecorderRef.current = mediaRecorder;
+        chunksRef.current = [];
 
-      mediaRecorder.onstop = async () => {
-        stream.getTracks().forEach((t) => t.stop());
-        const blob = new Blob(chunksRef.current, { type: mimeType });
-        await transcribeAndSend(blob, mimeType);
-      };
+        mediaRecorder.ondataavailable = (e) => {
+          if (e.data.size > 0) chunksRef.current.push(e.data);
+        };
 
-      mediaRecorder.start();
-      setRecording(true);
-    } catch {
-      alert("Microphone access denied. Please allow microphone in browser settings.");
-    }
-  };
+        mediaRecorder.onstop = async () => {
+          stream.getTracks().forEach((t) => t.stop());
+          const blob = new Blob(chunksRef.current, { type: mimeType });
+          await transcribeAndSend(blob, mimeType);
+        };
 
-  const stopRecording = () => {
-    if (mediaRecorderRef.current && recording) {
-      mediaRecorderRef.current.stop();
-      setRecording(false);
+        mediaRecorder.start();
+        setRecording(true);
+        setSttStatus("");
+      } catch {
+        setSttStatus("Microphone error");
+      }
     }
   };
 
@@ -121,7 +131,7 @@ export default function ChatPage() {
     setLoading(true);
     try {
       const formData = new FormData();
-      const ext = mimeType.includes("mp4") ? "mp4" : "webm";
+      const ext = mimeType.includes("mp4") ? "m4a" : "webm";
       formData.append("file", blob, `audio.${ext}`);
 
       const res = await fetch("/api/stt", {
@@ -130,11 +140,14 @@ export default function ChatPage() {
       });
       const data = await res.json();
       if (data.text) {
+        setSttStatus("");
         await sendMessage(data.text);
       } else {
+        setSttStatus("No speech detected");
         setLoading(false);
       }
     } catch {
+      setSttStatus("STT error");
       setLoading(false);
     }
   };
@@ -161,8 +174,16 @@ export default function ChatPage() {
           <h1 style={{ fontSize: "1.4rem", fontWeight: 800, color: "#fff", margin: 0, letterSpacing: 1 }}>
             🚴 RIDE ASSISTANT
           </h1>
-          <p style={{ color: "#8b949e", fontSize: "0.75rem", margin: "2px 0 0" }}>
-            {speaking ? "🔊 Speaking..." : "FI / EN / DE / FR — tap mic to speak"}
+          <p style={{
+            fontSize: "0.75rem",
+            margin: "2px 0 0",
+            color: sttStatus.includes("error") ? "#ff6b6b" :
+                   recording ? "#ff4444" :
+                   speaking ? "#4CAF50" : "#8b949e",
+          }}>
+            {recording ? "🔴 Recording — tap to stop" :
+             speaking ? "🔊 Speaking..." :
+             sttStatus || "FI / EN / DE / FR — tap mic to speak"}
           </p>
         </div>
         {speaking && (
@@ -228,11 +249,8 @@ export default function ChatPage() {
         flexShrink: 0,
         alignItems: "center",
       }}>
-        {/* Mic button */}
         <button
-          onPointerDown={startRecording}
-          onPointerUp={stopRecording}
-          onPointerLeave={stopRecording}
+          onClick={toggleRecording}
           disabled={loading}
           style={{
             width: 48, height: 48,
