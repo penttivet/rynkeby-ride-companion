@@ -11,9 +11,8 @@ export default function ChatPage() {
   const [speaking, setSpeaking] = useState(false);
   const [status, setStatus] = useState("");
   const bottomRef = useRef<HTMLDivElement>(null);
-  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
-  const chunksRef = useRef<Blob[]>([]);
   const audioRef = useRef<HTMLAudioElement | null>(null);
+  const recognitionRef = useRef<SpeechRecognition | null>(null);
 
   useEffect(() => { bottomRef.current?.scrollIntoView({ behavior: "smooth" }); }, [messages]);
 
@@ -50,50 +49,48 @@ export default function ChatPage() {
     finally { setLoading(false); }
   };
 
-  const toggleMic = async () => {
+  const toggleMic = () => {
     if (recording) {
-      mediaRecorderRef.current?.stop();
+      recognitionRef.current?.stop();
       setRecording(false);
       setStatus("");
       return;
     }
-    try {
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
-      const mimeType = ["audio/mp4;codecs=mp4a.40.2", "audio/mp4", "audio/aac", "audio/webm;codecs=opus", "audio/webm"].find(t => MediaRecorder.isTypeSupported(t)) || "";
-      const mr = new MediaRecorder(stream, mimeType ? { mimeType } : {});
-      mediaRecorderRef.current = mr;
-      chunksRef.current = [];
-      mr.ondataavailable = (e) => { if (e.data && e.data.size > 0) chunksRef.current.push(e.data); };
-      mr.onstop = async () => {
-        stream.getTracks().forEach(t => t.stop());
-        const chunks = chunksRef.current;
-        if (!chunks.length) { setStatus("No audio captured"); return; }
-        const blob = new Blob(chunks, { type: mimeType || "audio/webm" });
-        setStatus("Transcribing...");
-        setLoading(true);
-        try {
-          const ext = mimeType.includes("mp4") ? "m4a" : mimeType.includes("ogg") ? "ogg" : "webm";
-          const file = new File([blob], `audio.${ext}`, { type: blob.type });
-          const fd = new FormData();
-          fd.append("file", file);
-          const res = await fetch("/api/stt", { method: "POST", body: fd });
-          const data = await res.json();
-          if (data.text?.trim()) {
-            setStatus("");
-            await sendMessage(data.text);
-          } else {
-            setStatus("Could not understand audio");
-            setLoading(false);
-          }
-        } catch (e) { setStatus("STT error"); setLoading(false); }
-      };
-      mr.start(250);
+
+    const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+    if (!SpeechRecognition) {
+      setStatus("Speech not supported");
+      return;
+    }
+
+    const recognition = new SpeechRecognition();
+    recognition.lang = "fi-FI";
+    recognition.continuous = false;
+    recognition.interimResults = false;
+    recognitionRef.current = recognition;
+
+    recognition.onstart = () => {
       setRecording(true);
       setStatus("Recording...");
-    } catch (e: unknown) {
-      const msg = e instanceof Error ? e.message : String(e);
-      setStatus("Mic error: " + msg);
-    }
+    };
+
+    recognition.onresult = (event: SpeechRecognitionEvent) => {
+      const transcript = event.results[0][0].transcript;
+      setRecording(false);
+      setStatus("");
+      sendMessage(transcript);
+    };
+
+    recognition.onerror = (event: SpeechRecognitionErrorEvent) => {
+      setRecording(false);
+      setStatus("Mic error: " + event.error);
+    };
+
+    recognition.onend = () => {
+      setRecording(false);
+    };
+
+    recognition.start();
   };
 
   return (
