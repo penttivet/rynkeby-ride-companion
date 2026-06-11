@@ -59,7 +59,7 @@ export default function ChatPage() {
     }
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
-      const mimeType = ["audio/mp4", "audio/webm;codecs=opus", "audio/webm", "audio/ogg"].find(t => MediaRecorder.isTypeSupported(t)) || "";
+      const mimeType = ["audio/mp4;codecs=mp4a.40.2", "audio/mp4", "audio/aac", "audio/webm;codecs=opus", "audio/webm"].find(t => MediaRecorder.isTypeSupported(t)) || "";
       const mr = new MediaRecorder(stream, mimeType ? { mimeType } : {});
       mediaRecorderRef.current = mr;
       chunksRef.current = [];
