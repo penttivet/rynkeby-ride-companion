@@ -43,7 +43,7 @@ export default function ChatPage() {
       } catch {
         setSpeaking(false);
       }
-    } catch { setSpeaking(false); }
+    } catch (e: any) { setSpeaking(false); setStatus("TTS catch: " + e.message); }
   };
 
   const sendMessage = async (text: string) => {
