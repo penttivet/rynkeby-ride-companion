@@ -13,8 +13,18 @@ export default function ChatPage() {
   const bottomRef = useRef<HTMLDivElement>(null);
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const recognitionRef = useRef<any>(null);
+  const audioContextRef = useRef<AudioContext | null>(null);
 
   useEffect(() => { bottomRef.current?.scrollIntoView({ behavior: "smooth" }); }, [messages]);
+
+  const unlockAudio = () => {
+    if (!audioContextRef.current) {
+      audioContextRef.current = new AudioContext();
+    }
+    if (audioContextRef.current.state === "suspended") {
+      audioContextRef.current.resume();
+    }
+  };
 
   const speak = async (text: string) => {
     try {
@@ -24,10 +34,15 @@ export default function ChatPage() {
       const blob = await res.blob();
       const url = URL.createObjectURL(blob);
       const audio = new Audio(url);
+      audio.setAttribute("playsinline", "true");
       audioRef.current = audio;
       audio.onended = () => { setSpeaking(false); URL.revokeObjectURL(url); };
-      audio.onerror = () => setSpeaking(false);
-      audio.play().catch(() => setSpeaking(false));
+      audio.onerror = () => { setSpeaking(false); };
+      try {
+        await audio.play();
+      } catch {
+        setSpeaking(false);
+      }
     } catch { setSpeaking(false); }
   };
 
@@ -50,6 +65,7 @@ export default function ChatPage() {
   };
 
   const toggleMic = () => {
+    unlockAudio();
     if (recording) {
       recognitionRef.current?.stop();
       setRecording(false);
@@ -69,27 +85,15 @@ export default function ChatPage() {
     recognition.interimResults = false;
     recognitionRef.current = recognition;
 
-    recognition.onstart = () => {
-      setRecording(true);
-      setStatus("Recording...");
-    };
-
+    recognition.onstart = () => { setRecording(true); setStatus("Recording..."); };
     recognition.onresult = (event: any) => {
       const transcript = event.results[0][0].transcript;
       setRecording(false);
       setStatus("");
       sendMessage(transcript);
     };
-
-    recognition.onerror = (event: any) => {
-      setRecording(false);
-      setStatus("Mic error: " + event.error);
-    };
-
-    recognition.onend = () => {
-      setRecording(false);
-    };
-
+    recognition.onerror = (event: any) => { setRecording(false); setStatus("Mic error: " + event.error); };
+    recognition.onend = () => { setRecording(false); };
     recognition.start();
   };
 
@@ -116,7 +120,7 @@ export default function ChatPage() {
       <div style={{ padding: "0.75rem 1rem", borderTop: "1px solid rgba(255,255,255,0.08)", display: "flex", gap: "0.5rem", background: "#0d1117", flexShrink: 0, alignItems: "center" }}>
         <button onClick={toggleMic} disabled={loading && !recording} style={{ width: 48, height: 48, borderRadius: "50%", border: "none", background: recording ? "#C8102E" : "rgba(200,16,46,0.2)", color: "#fff", fontSize: "1.3rem", cursor: "pointer", flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center", boxShadow: recording ? "0 0 0 4px rgba(200,16,46,0.3)" : "none", transition: "all 0.2s" }}>{recording ? "⏹" : "🎤"}</button>
         <input value={input} onChange={e => setInput(e.target.value)} onKeyDown={e => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); sendMessage(input); } }} placeholder="Or type here..." style={{ flex: 1, background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.18)", borderRadius: 12, padding: "0.75rem 1rem", color: "#fff", fontFamily: "'Barlow', sans-serif", fontSize: "1rem", outline: "none" }} />
-        <button onClick={() => sendMessage(input)} disabled={loading || !input.trim()} style={{ padding: "0.75rem 1.1rem", borderRadius: 12, border: "none", background: loading || !input.trim() ? "rgba(200,16,46,0.3)" : "#C8102E", color: "#fff", fontWeight: 700, fontSize: "1.1rem", cursor: loading || !input.trim() ? "not-allowed" : "pointer", flexShrink: 0 }}>➤</button>
+        <button onClick={() => { unlockAudio(); sendMessage(input); }} disabled={loading || !input.trim()} style={{ padding: "0.75rem 1.1rem", borderRadius: 12, border: "none", background: loading || !input.trim() ? "rgba(200,16,46,0.3)" : "#C8102E", color: "#fff", fontWeight: 700, fontSize: "1.1rem", cursor: loading || !input.trim() ? "not-allowed" : "pointer", flexShrink: 0 }}>➤</button>
       </div>
     </div>
   );
