@@ -37,7 +37,7 @@ export default function ChatPage() {
       audio.setAttribute("playsinline", "true");
       audioRef.current = audio;
       audio.onended = () => { setSpeaking(false); URL.revokeObjectURL(url); };
-      audio.onerror = () => { setSpeaking(false); };
+      audio.onerror = (e) => { setSpeaking(false); setStatus("Audio error: " + JSON.stringify(e)); };
       try {
         await audio.play();
       } catch {
