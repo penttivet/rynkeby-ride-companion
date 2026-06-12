@@ -37,7 +37,7 @@ export default function ChatPage() {
       setStatus("");
     } catch (e: any) { setSpeaking(false); setStatus("Ei ääntä: " + e.message); }
   };
-  };
+  
 
   const sendMessage = async (text: string) => {
     if (!text.trim() || loading) return;
