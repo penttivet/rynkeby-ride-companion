@@ -24,13 +24,19 @@ export default function ChatPage() {
       if (!res.ok) { setSpeaking(false); return; }
       const blob = await res.blob();
       const url = URL.createObjectURL(blob);
-      const audio = new Audio(url);
+      const audio = document.createElement("audio");
       audio.setAttribute("playsinline", "true");
+      audio.setAttribute("webkit-playsinline", "true");
+      audio.preload = "auto";
+      audio.src = url;
+      document.body.appendChild(audio);
       audioRef.current = audio;
-      audio.onended = () => { setSpeaking(false); URL.revokeObjectURL(url); };
-      audio.onerror = () => { setSpeaking(false); };
+      audio.onended = () => { setSpeaking(false); URL.revokeObjectURL(url); document.body.removeChild(audio); };
+      audio.onerror = () => { setSpeaking(false); document.body.removeChild(audio); };
       await audio.play();
-    } catch { setSpeaking(false); }
+      setStatus("");
+    } catch (e: any) { setSpeaking(false); setStatus("Ei ääntä: " + e.message); }
+  };
   };
 
   const sendMessage = async (text: string) => {
