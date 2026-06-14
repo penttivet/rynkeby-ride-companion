@@ -1,7 +1,15 @@
 import { NextRequest, NextResponse } from "next/server";
 
+
+export const dynamic = 'force-dynamic';
+
 const REDIS_URL = process.env.UPSTASH_REDIS_REST_URL;
 const REDIS_TOKEN = process.env.UPSTASH_REDIS_REST_TOKEN;
+
+async function redisGet...
+
+
+
 
 async function redisGet(key: string) {
   const res = await fetch(`${REDIS_URL}/get/${key}`, {
