@@ -2,6 +2,7 @@
 import "./globals.css";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { Suspense } from "react";
 
 const navItems = [
   { href: "/", label: "Today", icon: "🏁" },
@@ -79,7 +80,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       </head>
       <body>
         <main>{children}</main>
-        <BottomNav />
+        <Suspense fallback={null}>
+          <BottomNav />
+        </Suspense>
       </body>
     </html>
   );
