@@ -38,11 +38,7 @@ function MemberCard({ member, canDelete, onDelete }: { member: TeamMember; canDe
       alignItems: "center",
       gap: "0.75rem",
     }}>
-      {member.photo ? (
-        <img src={member.photo} alt={member.name} style={{ width: 48, height: 48, borderRadius: "50%", objectFit: "cover", flexShrink: 0 }} />
-      ) : (
-        <div style={{ width: 48, height: 48, borderRadius: "50%", background: "rgba(200,16,46,0.2)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "1.4rem", flexShrink: 0 }}>🚴</div>
-      )}
+      <div style={{ width: 48, height: 48, borderRadius: "50%", background: "rgba(200,16,46,0.2)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "1.4rem", flexShrink: 0 }}>🚴</div>
       <div style={{ flex: 1 }}>
         <p style={{ color: "#fff", fontWeight: 700, fontSize: "0.95rem", margin: 0 }}>{member.name}</p>
         <p style={{ color: "#8b949e", fontSize: "0.78rem", margin: "2px 0 0" }}>{member.role}</p>
@@ -74,9 +70,7 @@ function TeamCard({ team }: { team: Team }) {
   const [newName, setNewName] = useState("");
   const [newRole, setNewRole] = useState("");
   const [newPhone, setNewPhone] = useState("");
-  const [newPhoto, setNewPhoto] = useState("");
   const [saving, setSaving] = useState(false);
-  const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     if (open) fetchMembers();
@@ -102,14 +96,6 @@ function TeamCard({ team }: { team: Team }) {
     }
   };
 
-  const handlePhotoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    const reader = new FileReader();
-    reader.onload = (ev) => setNewPhoto(ev.target?.result as string);
-    reader.readAsDataURL(file);
-  };
-
   const handleAddMember = async () => {
     if (!newName.trim()) return;
     setSaving(true);
@@ -119,7 +105,6 @@ function TeamCard({ team }: { team: Team }) {
         name: newName.trim(),
         role: newRole.trim() || "Team Member",
         phone: newPhone.trim() || undefined,
-        photo: newPhoto || undefined,
       };
       await fetch("/api/team/members", {
         method: "POST",
@@ -127,14 +112,13 @@ function TeamCard({ team }: { team: Team }) {
         body: JSON.stringify({ teamId: team.id, member }),
       });
       setMembers(prev => [...prev, member]);
-      setNewName(""); setNewRole(""); setNewPhone(""); setNewPhoto("");
+      setNewName(""); setNewRole(""); setNewPhone("");
       setShowAdd(false);
     } catch { }
     setSaving(false);
   };
 
   const handleDelete = async (memberId: string) => {
-    if (!confirm("Delete this member?")) return;
     try {
       await fetch("/api/team/members", {
         method: "DELETE",
@@ -199,11 +183,6 @@ function TeamCard({ team }: { team: Team }) {
               <input value={newName} onChange={e => setNewName(e.target.value)} placeholder="Full name *" style={{ padding: "8px 12px", borderRadius: 8, border: "1px solid rgba(255,255,255,0.15)", background: "rgba(255,255,255,0.05)", color: "#fff", fontSize: "0.9rem" }} />
               <input value={newRole} onChange={e => setNewRole(e.target.value)} placeholder="Role (e.g. Cyclist)" style={{ padding: "8px 12px", borderRadius: 8, border: "1px solid rgba(255,255,255,0.15)", background: "rgba(255,255,255,0.05)", color: "#fff", fontSize: "0.9rem" }} />
               <input value={newPhone} onChange={e => setNewPhone(e.target.value)} placeholder="Phone (e.g. +358401234567)" style={{ padding: "8px 12px", borderRadius: 8, border: "1px solid rgba(255,255,255,0.15)", background: "rgba(255,255,255,0.05)", color: "#fff", fontSize: "0.9rem" }} />
-              <div style={{ display: "flex", alignItems: "center", gap: "0.75rem" }}>
-                {newPhoto && <img src={newPhoto} alt="preview" style={{ width: 48, height: 48, borderRadius: "50%", objectFit: "cover" }} />}
-                <button onClick={() => fileInputRef.current?.click()} style={{ padding: "8px 14px", borderRadius: 8, border: "1px solid rgba(255,255,255,0.15)", background: "transparent", color: "#8b949e", cursor: "pointer", fontSize: "0.85rem" }}>📷 Photo</button>
-                <input ref={fileInputRef} type="file" accept="image/*" onChange={handlePhotoUpload} style={{ display: "none" }} />
-              </div>
               <div style={{ display: "flex", gap: "0.5rem" }}>
                 <button onClick={handleAddMember} disabled={saving || !newName.trim()} style={{ flex: 1, padding: "10px", borderRadius: 8, border: "none", background: "#C8102E", color: "#fff", cursor: "pointer", fontWeight: 700, fontSize: "0.9rem", opacity: saving ? 0.6 : 1 }}>{saving ? "Saving..." : "Add"}</button>
                 <button onClick={() => setShowAdd(false)} style={{ padding: "10px 14px", borderRadius: 8, border: "1px solid rgba(255,255,255,0.15)", background: "transparent", color: "#8b949e", cursor: "pointer", fontSize: "0.85rem" }}>Cancel</button>
