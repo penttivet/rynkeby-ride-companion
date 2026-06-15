@@ -6,19 +6,24 @@ const REDIS_URL = process.env.UPSTASH_REDIS_REST_URL;
 const REDIS_TOKEN = process.env.UPSTASH_REDIS_REST_TOKEN;
 
 async function redisGet(key: string) {
+  console.log("redisGet", key, "URL:", REDIS_URL?.substring(0, 30));
   const res = await fetch(`${REDIS_URL}/get/${key}`, {
     headers: { Authorization: `Bearer ${REDIS_TOKEN}` },
   });
   const data = await res.json();
+  console.log("redisGet result:", JSON.stringify(data));
   return data.result ? JSON.parse(data.result) : null;
 }
 
 async function redisSet(key: string, value: any) {
-  await fetch(`${REDIS_URL}/set/${key}`, {
+  console.log("redisSet", key, "value:", JSON.stringify(value));
+  const res = await fetch(`${REDIS_URL}/set/${key}`, {
     method: "POST",
     headers: { Authorization: `Bearer ${REDIS_TOKEN}`, "Content-Type": "application/json" },
     body: JSON.stringify(JSON.stringify(value)),
   });
+  const data = await res.json();
+  console.log("redisSet result:", JSON.stringify(data));
 }
 
 export async function GET(req: NextRequest) {
@@ -28,6 +33,7 @@ export async function GET(req: NextRequest) {
     const members = await redisGet(`rynkeby:team:${teamId}`) || [];
     return NextResponse.json({ members });
   } catch (e) {
+    console.error("GET error:", e);
     return NextResponse.json({ members: [] });
   }
 }
@@ -41,6 +47,7 @@ export async function POST(req: NextRequest) {
     await redisSet(`rynkeby:team:${teamId}`, members);
     return NextResponse.json({ success: true });
   } catch (e) {
+    console.error("POST error:", e);
     return NextResponse.json({ error: "Failed" }, { status: 500 });
   }
 }
@@ -54,6 +61,7 @@ export async function DELETE(req: NextRequest) {
     await redisSet(`rynkeby:team:${teamId}`, filtered);
     return NextResponse.json({ success: true });
   } catch (e) {
+    console.error("DELETE error:", e);
     return NextResponse.json({ error: "Failed" }, { status: 500 });
   }
 }
