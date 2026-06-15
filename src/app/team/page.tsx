@@ -59,7 +59,7 @@ function MemberCard({ member, canDelete, onDelete }: { member: TeamMember; canDe
 }
 
 function TeamCard({ team }: { team: Team }) {
-  const [open, setOpen] = useState(team.id === "media");
+  const [open, setOpen] = useState(false);
   const [loggedIn, setLoggedIn] = useState(false);
   const [showLogin, setShowLogin] = useState(false);
   const [showAdd, setShowAdd] = useState(false);
