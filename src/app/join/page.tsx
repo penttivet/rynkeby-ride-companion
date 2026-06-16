@@ -73,7 +73,7 @@ export default function JoinPage() {
         body: JSON.stringify({ teamId: selectedTeam, member }),
       });
       localStorage.setItem("rynkeby_user", JSON.stringify({ name: name.trim(), teamId: selectedTeam, memberId: member.id }));
-      router.push("/");
+      router.push("/team");
     } catch {
       setError("Virhe — yritä uudelleen");
     }
