@@ -10,6 +10,7 @@ const navItems = [
   { href: "/chat", label: "Chat", icon: "🤖" },
   { href: "/team", label: "Team", icon: "🚴" },
   { href: "/translate", label: "Translate", icon: "🌍" },
+  { href: "/map", label: "Map", icon: "🗺️" },
   { href: "/support", label: "Support", icon: "🚗" },
 ];
 
