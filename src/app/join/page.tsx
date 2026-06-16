@@ -38,10 +38,15 @@ export default function JoinPage() {
   const [name, setName] = useState("");
   const [selectedTeam, setSelectedTeam] = useState("");
   const [password, setPassword] = useState("");
-  const [photo, setPhoto] = useState<string | null>(null);
+  const [photo, setPhoto] = useState("")
   const [error, setError] = useState("");
   const [saving, setSaving] = useState(false);
-
+  <input
+  value={phone}
+  onChange={e => setPhone(e.target.value)}
+  placeholder="Puhelinnumero (+358...)"
+  style={{ padding: "12px 16px", borderRadius: 10, border: "1px solid rgba(255,255,255,0.15)", background: "rgba(255,255,255,0.05)", color: "#fff", fontSize: "1rem" }}
+/>
   const handlePhoto = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
