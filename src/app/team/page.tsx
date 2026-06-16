@@ -24,7 +24,6 @@ const TEAMS: Team[] = [
   { id: "vantaa", name: "Team Vantaa", emoji: "🚴", password: "vantaa2026" },
   { id: "turku", name: "Team Turku", emoji: "🚴", password: "turku2026" },
   { id: "hame", name: "Team Häme", emoji: "🚴", password: "hame2026" },
-  { id: "support", name: "Support Team", emoji: "🚗", password: "support2026" },
 ];
 
 function resizeImage(file: File, maxSize = 200): Promise<string> {
