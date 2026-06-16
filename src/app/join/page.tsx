@@ -21,8 +21,8 @@ function resizeImage(file: File, maxSize = 200): Promise<string> {
       img.onload = () => {
         const canvas = document.createElement("canvas");
         const scale = Math.min(maxSize / img.width, maxSize / img.height, 1);
-        canvas.width = img.width * scale;
-        canvas.height = img.height * scale;
+        canvas.width = Math.round(img.width * scale);
+        canvas.height = Math.round(img.height * scale);
         const ctx = canvas.getContext("2d")!;
         ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
         resolve(canvas.toDataURL("image/jpeg", 0.6));
@@ -36,17 +36,13 @@ function resizeImage(file: File, maxSize = 200): Promise<string> {
 export default function JoinPage() {
   const router = useRouter();
   const [name, setName] = useState("");
+  const [phone, setPhone] = useState("");
   const [selectedTeam, setSelectedTeam] = useState("");
   const [password, setPassword] = useState("");
-  const [photo, setPhoto] = useState("")
+  const [photo, setPhoto] = useState<string | null>(null);
   const [error, setError] = useState("");
   const [saving, setSaving] = useState(false);
-  <input
-  value={phone}
-  onChange={e => setPhone(e.target.value)}
-  placeholder="Puhelinnumero (+358...)"
-  style={{ padding: "12px 16px", borderRadius: 10, border: "1px solid rgba(255,255,255,0.15)", background: "rgba(255,255,255,0.05)", color: "#fff", fontSize: "1rem" }}
-/>
+
   const handlePhoto = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -70,6 +66,7 @@ export default function JoinPage() {
         id: Date.now().toString(),
         name: name.trim(),
         role: "Cyclist",
+        phone: phone.trim() || undefined,
         photo: photo || undefined,
       };
       await fetch("/api/team/members", {
@@ -77,7 +74,11 @@ export default function JoinPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ teamId: selectedTeam, member }),
       });
-      localStorage.setItem("rynkeby_user", JSON.stringify({ name: name.trim(), teamId: selectedTeam, memberId: member.id }));
+      localStorage.setItem("rynkeby_user", JSON.stringify({
+        name: name.trim(),
+        teamId: selectedTeam,
+        memberId: member.id,
+      }));
       router.push("/team");
     } catch {
       setError("Virhe — yritä uudelleen");
@@ -99,6 +100,14 @@ export default function JoinPage() {
             value={name}
             onChange={e => setName(e.target.value)}
             placeholder="Koko nimesi *"
+            style={{ padding: "12px 16px", borderRadius: 10, border: "1px solid rgba(255,255,255,0.15)", background: "rgba(255,255,255,0.05)", color: "#fff", fontSize: "1rem" }}
+          />
+
+          <input
+            value={phone}
+            onChange={e => setPhone(e.target.value)}
+            placeholder="Puhelinnumero (+358...)"
+            type="tel"
             style={{ padding: "12px 16px", borderRadius: 10, border: "1px solid rgba(255,255,255,0.15)", background: "rgba(255,255,255,0.05)", color: "#fff", fontSize: "1rem" }}
           />
 
