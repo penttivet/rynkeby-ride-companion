@@ -1,4 +1,11 @@
 "use client";
+import { useEffect } from "react";
+import { useRouter } from "next/navigation";
+
 export default function HomePage() {
-  return <div>Loading...</div>;
+const router = useRouter();
+useEffect(() => {
+router.replace("/today");
+}, [router]);
+return <div style={{ color: "white", padding: "2rem" }}>Ladataan...</div>;
 }
