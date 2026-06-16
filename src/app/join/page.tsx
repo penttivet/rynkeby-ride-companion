@@ -37,6 +37,7 @@ export default function JoinPage() {
   const router = useRouter();
   const [name, setName] = useState("");
   const [phone, setPhone] = useState("");
+  const [role, setRole] = useState<"cyclist" | "support">("cyclist");
   const [selectedTeam, setSelectedTeam] = useState("");
   const [password, setPassword] = useState("");
   const [photo, setPhoto] = useState<string | null>(null);
@@ -62,24 +63,32 @@ export default function JoinPage() {
     }
     setSaving(true);
     try {
-      const member = {
-        id: Date.now().toString(),
-        name: name.trim(),
-        role: "Cyclist",
-        phone: phone.trim() || undefined,
-        photo: photo || undefined,
-      };
-      await fetch("/api/team/members", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ teamId: selectedTeam, member }),
-      });
+      const memberId = Date.now().toString();
+
+      // Only add to team member list if cyclist
+      if (role === "cyclist") {
+        const member = {
+          id: memberId,
+          name: name.trim(),
+          role: "Cyclist",
+          phone: phone.trim() || undefined,
+          photo: photo || undefined,
+        };
+        await fetch("/api/team/members", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ teamId: selectedTeam, member }),
+        });
+      }
+
       localStorage.setItem("rynkeby_user", JSON.stringify({
         name: name.trim(),
         teamId: selectedTeam,
-        memberId: member.id,
+        memberId,
+        role,
       }));
-      router.push("/team");
+
+      router.push(role === "support" ? "/support" : "/team");
     } catch {
       setError("Virhe — yritä uudelleen");
     }
@@ -96,6 +105,35 @@ export default function JoinPage() {
         </div>
 
         <div style={{ display: "flex", flexDirection: "column", gap: "0.75rem" }}>
+
+          {/* Role selector */}
+          <div style={{ display: "flex", gap: "0.5rem" }}>
+            <button
+              onClick={() => setRole("cyclist")}
+              style={{
+                flex: 1, padding: "12px", borderRadius: 10,
+                border: role === "cyclist" ? "2px solid #C8102E" : "1px solid rgba(255,255,255,0.15)",
+                background: role === "cyclist" ? "rgba(200,16,46,0.15)" : "rgba(255,255,255,0.05)",
+                color: "#fff", fontWeight: role === "cyclist" ? 700 : 400,
+                fontSize: "0.95rem", cursor: "pointer",
+              }}
+            >
+              🚴 Pyöräilijä
+            </button>
+            <button
+              onClick={() => setRole("support")}
+              style={{
+                flex: 1, padding: "12px", borderRadius: 10,
+                border: role === "support" ? "2px solid #10b981" : "1px solid rgba(255,255,255,0.15)",
+                background: role === "support" ? "rgba(16,185,129,0.15)" : "rgba(255,255,255,0.05)",
+                color: "#fff", fontWeight: role === "support" ? 700 : 400,
+                fontSize: "0.95rem", cursor: "pointer",
+              }}
+            >
+              🚗 Support
+            </button>
+          </div>
+
           <input
             value={name}
             onChange={e => setName(e.target.value)}
@@ -128,22 +166,29 @@ export default function JoinPage() {
             style={{ padding: "12px 16px", borderRadius: 10, border: "1px solid rgba(255,255,255,0.15)", background: "rgba(255,255,255,0.05)", color: "#fff", fontSize: "1rem" }}
           />
 
-          <div style={{ display: "flex", alignItems: "center", gap: "1rem" }}>
-            {photo && <img src={photo} alt="preview" style={{ width: 56, height: 56, borderRadius: "50%", objectFit: "cover" }} />}
-            <label style={{ flex: 1, padding: "10px", borderRadius: 10, border: "1px dashed rgba(255,255,255,0.2)", color: "#8b949e", textAlign: "center", cursor: "pointer", fontSize: "0.85rem" }}>
-              📷 {photo ? "Vaihda kuva" : "Lisää kuva (valinnainen)"}
-              <input type="file" accept="image/*" onChange={handlePhoto} style={{ display: "none" }} />
-            </label>
-          </div>
+          {role === "cyclist" && (
+            <div style={{ display: "flex", alignItems: "center", gap: "1rem" }}>
+              {photo && <img src={photo} alt="preview" style={{ width: 56, height: 56, borderRadius: "50%", objectFit: "cover" }} />}
+              <label style={{ flex: 1, padding: "10px", borderRadius: 10, border: "1px dashed rgba(255,255,255,0.2)", color: "#8b949e", textAlign: "center", cursor: "pointer", fontSize: "0.85rem" }}>
+                📷 {photo ? "Vaihda kuva" : "Lisää kuva (valinnainen)"}
+                <input type="file" accept="image/*" onChange={handlePhoto} style={{ display: "none" }} />
+              </label>
+            </div>
+          )}
 
           {error && <p style={{ color: "#ff4757", fontSize: "0.85rem", margin: 0 }}>{error}</p>}
 
           <button
             onClick={handleJoin}
             disabled={saving}
-            style={{ padding: "14px", borderRadius: 10, border: "none", background: "#C8102E", color: "#fff", fontSize: "1rem", fontWeight: 700, cursor: "pointer", opacity: saving ? 0.6 : 1, marginTop: "0.5rem" }}
+            style={{
+              padding: "14px", borderRadius: 10, border: "none",
+              background: role === "support" ? "#10b981" : "#C8102E",
+              color: "#fff", fontSize: "1rem", fontWeight: 700,
+              cursor: "pointer", opacity: saving ? 0.6 : 1, marginTop: "0.5rem"
+            }}
           >
-            {saving ? "Liitytään..." : "Liity tiimiin 🚴"}
+            {saving ? "Liitytään..." : role === "support" ? "Liity tukiautona 🚗" : "Liity tiimiin 🚴"}
           </button>
         </div>
       </div>
