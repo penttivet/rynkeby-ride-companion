@@ -6,12 +6,11 @@ const REDIS_TOKEN = process.env.UPSTASH_REDIS_REST_TOKEN;
 const TEAM_NAMES: Record<string, string> = {
   media: "Media Team",
   oulu: "Team Oulu",
-  jarvisuomi: "Team Järvi-Suomi",
+  "jarvi-suomi": "Team Järvi-Suomi",
   espoo: "Team Espoo",
   vantaa: "Team Vantaa",
   turku: "Team Turku",
-  tampere: "Team Tampere",
-  helsinki: "Team Helsinki",
+  hame: "Team Häme",
 };
 
 async function redisCommand(command: string[]) {
