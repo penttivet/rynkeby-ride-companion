@@ -10,6 +10,25 @@ const statusConfig = {
   solved: { label: "Solved", bg: "rgba(16,185,129,0.1)", border: "rgba(16,185,129,0.3)", color: "#10b981" },
 };
 
+const TEAM_NAMES: Record<string, string> = {
+  media: "Media Team",
+  oulu: "Team Oulu",
+  "jarvi-suomi": "Team Järvi-Suomi",
+  espoo: "Team Espoo",
+  vantaa: "Team Vantaa",
+  turku: "Team Turku",
+  hame: "Team Häme",
+};
+
+function getCurrentTeamId(): string | null {
+  try {
+    const user = JSON.parse(localStorage.getItem("rynkeby_user") || "{}");
+    return user.teamId || null;
+  } catch {
+    return null;
+  }
+}
+
 export default function SupportPage() {
   const [requests, setRequests] = useState<HelpRequest[]>([]);
   const [filter, setFilter] = useState<"all" | HelpRequest["status"]>("all");
@@ -18,15 +37,12 @@ export default function SupportPage() {
   const [tracking, setTracking] = useState(false);
   const [gpsError, setGpsError] = useState("");
   const [lastUpdate, setLastUpdate] = useState("");
+  const [teamId, setTeamId] = useState<string | null>(null);
   const watchRef = useRef<number | null>(null);
-  const teamId = useRef<string>("support");
 
   useEffect(() => {
     setRequests(getHelpRequests());
-    try {
-      const user = JSON.parse(localStorage.getItem("rynkeby_user") || "{}");
-      if (user.teamId) teamId.current = user.teamId;
-    } catch { }
+    setTeamId(getCurrentTeamId());
   }, []);
 
   useEffect(() => {
@@ -37,18 +53,25 @@ export default function SupportPage() {
     };
   }, []);
 
-  const sendLocation = async (lat: number, lng: number) => {
+  const sendLocation = async (currentTeamId: string, lat: number, lng: number) => {
     try {
       await fetch("/api/locations", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ teamId: teamId.current, lat, lng }),
+        body: JSON.stringify({ teamId: currentTeamId, lat, lng }),
       });
       setLastUpdate(new Date().toLocaleTimeString("fi-FI"));
     } catch { }
   };
 
   const startTracking = () => {
+    const currentTeamId = getCurrentTeamId();
+    if (!currentTeamId) {
+      setGpsError("Kirjaudu ensin sisään /join-sivulla, jotta tiimisi tunnistetaan");
+      return;
+    }
+    setTeamId(currentTeamId);
+
     if (!navigator.geolocation) {
       setGpsError("GPS ei ole käytettävissä tässä laitteessa");
       return;
@@ -56,7 +79,7 @@ export default function SupportPage() {
     setGpsError("");
     watchRef.current = navigator.geolocation.watchPosition(
       (pos) => {
-        sendLocation(pos.coords.latitude, pos.coords.longitude);
+        sendLocation(currentTeamId, pos.coords.latitude, pos.coords.longitude);
         setTracking(true);
       },
       (err) => {
@@ -75,11 +98,13 @@ export default function SupportPage() {
     }
     setTracking(false);
     setLastUpdate("");
+    const currentTeamId = teamId || getCurrentTeamId();
+    if (!currentTeamId) return;
     try {
       await fetch("/api/locations", {
         method: "DELETE",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ teamId: teamId.current }),
+        body: JSON.stringify({ teamId: currentTeamId }),
       });
     } catch { }
   };
@@ -119,11 +144,13 @@ export default function SupportPage() {
         gap: "0.75rem",
       }}>
         <div>
-          <p style={{ color: "#fff", fontWeight: 700, fontSize: "0.9rem", margin: 0 }}>🚗 GPS-seuranta</p>
+          <p style={{ color: "#fff", fontWeight: 700, fontSize: "0.9rem", margin: 0 }}>
+            🚗 GPS-seuranta{teamId ? ` — ${TEAM_NAMES[teamId] || teamId}` : ""}
+          </p>
           {tracking && lastUpdate && (
             <p style={{ color: "#10b981", fontSize: "0.75rem", margin: "2px 0 0" }}>● Aktiivinen — päivitetty {lastUpdate}</p>
           )}
-          {!tracking && (
+          {!tracking && !gpsError && (
             <p style={{ color: "#8b949e", fontSize: "0.75rem", margin: "2px 0 0" }}>Käynnistä niin sijaintisi näkyy kartalla</p>
           )}
           {gpsError && (
