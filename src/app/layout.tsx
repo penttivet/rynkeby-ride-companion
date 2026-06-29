@@ -5,7 +5,7 @@ import { usePathname } from "next/navigation";
 import { Suspense } from "react";
 
 const navItems = [
-  { href: "/", label: "Today", icon: "🏁" },
+  { href: "/today", label: "Today", icon: "🏁" },
   { href: "/sos", label: "SOS", icon: "🆘" },
   { href: "/chat", label: "Chat", icon: "🤖" },
   { href: "/team", label: "Team", icon: "🚴" },
