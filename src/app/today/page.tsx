@@ -1,72 +1,8 @@
 "use client";
 
 import { useState, useEffect } from "react";
-
-type RideDay = {
-  date: string;
-  day: string;
-  from: string;
-  to: string;
-  km: number;
-  hotel: string;
-  lat: number;
-  lng: number;
-  prep?: boolean;
-  note?: string;
-};
-
-// --- Esivalmistelupäivät (yhteiset kaikille tiimeille) ---
-const prepDays: RideDay[] = [
-  { date: "2026-06-29", day: "Esivalmistelu", from: "", to: "Espoo", km: 0, hotel: "Koti — pakkaa ja huolla pyörä", lat: 60.2055, lng: 24.6559, prep: true, note: "🧰 Tarkista pyörä, varaosat ja varusteet." },
-  { date: "2026-06-30", day: "Esivalmistelu", from: "", to: "Espoo", km: 0, hotel: "Koti — viimeiset valmistelut", lat: 60.2055, lng: 24.6559, prep: true, note: "💤 Lepää ja tankkaa hyvin ennen matkaa." },
-  { date: "2026-07-01", day: "Esivalmistelu", from: "", to: "Espoo", km: 0, hotel: "Koti — lähtövalmius", lat: 60.2055, lng: 24.6559, prep: true, note: "📋 Käy läpi matkalista ja dokumentit." },
-  { date: "2026-07-02", day: "Matkapäivä", from: "Espoo", to: "Kiel", km: 0, hotel: "Matka kohti Kieliä", lat: 54.3233, lng: 10.1228, prep: true, note: "🚗 Siirtyminen lähtöpaikalle Kieliin." },
-  { date: "2026-07-03", day: "Lähtöä edeltävä päivä", from: "Kiel", to: "Kiel", km: 0, hotel: "Hotelli Kiel — lähtöbriefing", lat: 54.3233, lng: 10.1228, prep: true, note: "🎒 Briefing ja viimeinen pyörähuolto. Huomenna lähtö!" },
-];
-
-// --- Reittipohja (kopioi tämä ja muokkaa kaupungit/hotellit tiimikohtaisesti) ---
-// HUOM: Tämä on aluksi sama kaikille tiimeille. Kun tiedät tiimin oikean reitin,
-// muokkaa kyseisen reitin päiviä alla olevassa ROUTES-listassa.
-const templateRideDays: RideDay[] = [
-  { date: "2026-07-04", day: "Päivä 1", from: "Kiel", to: "Hamburg", km: 120, hotel: "Hotel Hamburg City", lat: 53.5511, lng: 9.9937 },
-  { date: "2026-07-05", day: "Päivä 2", from: "Hamburg", to: "Bremen", km: 110, hotel: "Hotel Bremen", lat: 53.0793, lng: 8.8017 },
-  { date: "2026-07-06", day: "Päivä 3", from: "Bremen", to: "Osnabrück", km: 130, hotel: "Hotel Osnabrück", lat: 52.2799, lng: 8.0472 },
-  { date: "2026-07-07", day: "Päivä 4", from: "Osnabrück", to: "Köln", km: 150, hotel: "Hotel Köln", lat: 50.9375, lng: 6.9603 },
-  { date: "2026-07-08", day: "Päivä 5", from: "Köln", to: "Liège", km: 120, hotel: "Hotel Liège", lat: 50.6326, lng: 5.5797 },
-  { date: "2026-07-09", day: "Päivä 6", from: "Liège", to: "Bruxelles", km: 100, hotel: "Hotel Brussels", lat: 50.8503, lng: 4.3517 },
-  { date: "2026-07-10", day: "Päivä 7", from: "Bruxelles", to: "Paris", km: 130, hotel: "Hotel Paris", lat: 48.8566, lng: 2.3522 },
-];
-
-// Yhdistää esivalmistelupäivät + ajopäivät yhdeksi reitiksi.
-function makeRoute(rideDays: RideDay[]): RideDay[] {
-  return [...prepDays, ...rideDays];
-}
-
-// --- Tiimien reitit (avaimittain) ---
-// Aluksi jokainen käyttää samaa pohjaa. Kun haluat antaa tiimille oman reitin,
-// korvaa makeRoute(templateRideDays) omalla makeRoute([ ...päivät... ]) -listalla.
-const ROUTES: Record<string, RideDay[]> = {
-  media: makeRoute(templateRideDays),
-  oulu: makeRoute(templateRideDays),
-  "jarvi-tampere": makeRoute(templateRideDays),
-  espoo: makeRoute(templateRideDays),
-  vantaa: makeRoute(templateRideDays),
-  "turku-osterbothnia": makeRoute(templateRideDays),
-  hame: makeRoute(templateRideDays),
-};
-
-// --- Tiimit (näytetään valitsimessa). Parit jakavat saman reittiavaimen. ---
-const TEAMS: { label: string; routeKey: string }[] = [
-  { label: "Media Team", routeKey: "media" },
-  { label: "Team Oulu", routeKey: "oulu" },
-  { label: "Team Järvi-Suomi", routeKey: "jarvi-tampere" },
-  { label: "Team Tampere", routeKey: "jarvi-tampere" },
-  { label: "Team Espoo", routeKey: "espoo" },
-  { label: "Team Vantaa", routeKey: "vantaa" },
-  { label: "Team Turku", routeKey: "turku-osterbothnia" },
-  { label: "Team Österbothnia", routeKey: "turku-osterbothnia" },
-  { label: "Team Häme", routeKey: "hame" },
-];
+import Link from "next/link";
+import { RideDay, ROUTES, TEAMS } from "@/lib/routes";
 
 interface Weather {
   city: string;
@@ -123,7 +59,6 @@ export default function TodayPage() {
   const [weatherLoading, setWeatherLoading] = useState(false);
   const [weatherError, setWeatherError] = useState(false);
 
-  // Lataa tallennettu tiimi (jos on)
   useEffect(() => {
     try {
       const saved = localStorage.getItem("rynkeby_team");
@@ -248,7 +183,7 @@ export default function TodayPage() {
             )}
           </div>
 
-          <div style={{ background: "#16213e", borderRadius: 12, padding: "1.5rem" }}>
+          <div style={{ background: "#16213e", borderRadius: 12, padding: "1.5rem", marginBottom: "1rem" }}>
             <h3 style={{ fontSize: "1.2rem", marginBottom: 12 }}>🌤️ Sää — {rideDay.to}</h3>
 
             {weatherLoading && <p style={{ color: "#aaa" }}>Haetaan säätä…</p>}
@@ -265,7 +200,7 @@ export default function TodayPage() {
 
                 {weather.warnings.length > 0 && (
                   <div style={{ background: "#2a1a1a", border: "1px solid #5a2a2a", borderRadius: 8, padding: "0.9rem", marginTop: 4 }}>
-                    <p style={{ fontWeight: 600, marginBottom: 8, color: "#ffb3b3" }}>⚠️ Huomioi {rideDay.prep ? "" : "ajossa"}:</p>
+                    <p style={{ fontWeight: 600, marginBottom: 8, color: "#ffb3b3" }}>⚠️ Huomioi:</p>
                     {weather.warnings.map((warn, i) => (
                       <p key={i} style={{ fontSize: "1rem", marginBottom: i < weather.warnings.length - 1 ? 6 : 0 }}>
                         {warn}
@@ -284,11 +219,28 @@ export default function TodayPage() {
           </div>
         </>
       ) : (
-        <div style={{ background: "#1a1a2e", borderRadius: 12, padding: "1.5rem" }}>
+        <div style={{ background: "#1a1a2e", borderRadius: 12, padding: "1.5rem", marginBottom: "1rem" }}>
           <p style={{ fontSize: "1.1rem", color: "#aaa" }}>Ei ajopäivää tänään ({team.label}).</p>
           <p style={{ marginTop: 8 }}>Ajo alkaa 4.7.2026 Kielistä! 🚴‍♂️</p>
         </div>
       )}
+
+      <Link
+        href="/route"
+        style={{
+          display: "block",
+          textAlign: "center",
+          background: "#0f3460",
+          color: "white",
+          padding: "0.9rem",
+          borderRadius: 10,
+          textDecoration: "none",
+          fontSize: "1.05rem",
+          fontWeight: 600,
+        }}
+      >
+        🗺️ Näytä koko reitti →
+      </Link>
     </div>
   );
 }
