@@ -15,15 +15,19 @@ type RideDay = {
   note?: string;
 };
 
-const RIDE_DAYS: RideDay[] = [
-  // --- Esivalmistelupäivät ---
+// --- Esivalmistelupäivät (yhteiset kaikille tiimeille) ---
+const prepDays: RideDay[] = [
   { date: "2026-06-29", day: "Esivalmistelu", from: "", to: "Espoo", km: 0, hotel: "Koti — pakkaa ja huolla pyörä", lat: 60.2055, lng: 24.6559, prep: true, note: "🧰 Tarkista pyörä, varaosat ja varusteet." },
   { date: "2026-06-30", day: "Esivalmistelu", from: "", to: "Espoo", km: 0, hotel: "Koti — viimeiset valmistelut", lat: 60.2055, lng: 24.6559, prep: true, note: "💤 Lepää ja tankkaa hyvin ennen matkaa." },
   { date: "2026-07-01", day: "Esivalmistelu", from: "", to: "Espoo", km: 0, hotel: "Koti — lähtövalmius", lat: 60.2055, lng: 24.6559, prep: true, note: "📋 Käy läpi matkalista ja dokumentit." },
   { date: "2026-07-02", day: "Matkapäivä", from: "Espoo", to: "Kiel", km: 0, hotel: "Matka kohti Kieliä", lat: 54.3233, lng: 10.1228, prep: true, note: "🚗 Siirtyminen lähtöpaikalle Kieliin." },
   { date: "2026-07-03", day: "Lähtöä edeltävä päivä", from: "Kiel", to: "Kiel", km: 0, hotel: "Hotelli Kiel — lähtöbriefing", lat: 54.3233, lng: 10.1228, prep: true, note: "🎒 Briefing ja viimeinen pyörähuolto. Huomenna lähtö!" },
+];
 
-  // --- Varsinainen ajo ---
+// --- Reittipohja (kopioi tämä ja muokkaa kaupungit/hotellit tiimikohtaisesti) ---
+// HUOM: Tämä on aluksi sama kaikille tiimeille. Kun tiedät tiimin oikean reitin,
+// muokkaa kyseisen reitin päiviä alla olevassa ROUTES-listassa.
+const templateRideDays: RideDay[] = [
   { date: "2026-07-04", day: "Päivä 1", from: "Kiel", to: "Hamburg", km: 120, hotel: "Hotel Hamburg City", lat: 53.5511, lng: 9.9937 },
   { date: "2026-07-05", day: "Päivä 2", from: "Hamburg", to: "Bremen", km: 110, hotel: "Hotel Bremen", lat: 53.0793, lng: 8.8017 },
   { date: "2026-07-06", day: "Päivä 3", from: "Bremen", to: "Osnabrück", km: 130, hotel: "Hotel Osnabrück", lat: 52.2799, lng: 8.0472 },
@@ -31,6 +35,37 @@ const RIDE_DAYS: RideDay[] = [
   { date: "2026-07-08", day: "Päivä 5", from: "Köln", to: "Liège", km: 120, hotel: "Hotel Liège", lat: 50.6326, lng: 5.5797 },
   { date: "2026-07-09", day: "Päivä 6", from: "Liège", to: "Bruxelles", km: 100, hotel: "Hotel Brussels", lat: 50.8503, lng: 4.3517 },
   { date: "2026-07-10", day: "Päivä 7", from: "Bruxelles", to: "Paris", km: 130, hotel: "Hotel Paris", lat: 48.8566, lng: 2.3522 },
+];
+
+// Yhdistää esivalmistelupäivät + ajopäivät yhdeksi reitiksi.
+function makeRoute(rideDays: RideDay[]): RideDay[] {
+  return [...prepDays, ...rideDays];
+}
+
+// --- Tiimien reitit (avaimittain) ---
+// Aluksi jokainen käyttää samaa pohjaa. Kun haluat antaa tiimille oman reitin,
+// korvaa makeRoute(templateRideDays) omalla makeRoute([ ...päivät... ]) -listalla.
+const ROUTES: Record<string, RideDay[]> = {
+  media: makeRoute(templateRideDays),
+  oulu: makeRoute(templateRideDays),
+  "jarvi-tampere": makeRoute(templateRideDays),
+  espoo: makeRoute(templateRideDays),
+  vantaa: makeRoute(templateRideDays),
+  "turku-osterbothnia": makeRoute(templateRideDays),
+  hame: makeRoute(templateRideDays),
+};
+
+// --- Tiimit (näytetään valitsimessa). Parit jakavat saman reittiavaimen. ---
+const TEAMS: { label: string; routeKey: string }[] = [
+  { label: "Media Team", routeKey: "media" },
+  { label: "Team Oulu", routeKey: "oulu" },
+  { label: "Team Järvi-Suomi", routeKey: "jarvi-tampere" },
+  { label: "Team Tampere", routeKey: "jarvi-tampere" },
+  { label: "Team Espoo", routeKey: "espoo" },
+  { label: "Team Vantaa", routeKey: "vantaa" },
+  { label: "Team Turku", routeKey: "turku-osterbothnia" },
+  { label: "Team Österbothnia", routeKey: "turku-osterbothnia" },
+  { label: "Team Häme", routeKey: "hame" },
 ];
 
 interface Weather {
@@ -82,14 +117,38 @@ function buildWarnings(windKmh: number, precipProb: number, tempMax: number, cod
 
 export default function TodayPage() {
   const today = new Date().toISOString().split("T")[0];
-  const rideDay = RIDE_DAYS.find(d => d.date === today);
 
+  const [teamLabel, setTeamLabel] = useState<string>(TEAMS[0].label);
   const [weather, setWeather] = useState<Weather | null>(null);
   const [weatherLoading, setWeatherLoading] = useState(false);
   const [weatherError, setWeatherError] = useState(false);
 
+  // Lataa tallennettu tiimi (jos on)
   useEffect(() => {
-    if (!rideDay) return;
+    try {
+      const saved = localStorage.getItem("rynkeby_team");
+      if (saved && TEAMS.some((t) => t.label === saved)) {
+        setTeamLabel(saved);
+      }
+    } catch {}
+  }, []);
+
+  const team = TEAMS.find((t) => t.label === teamLabel) || TEAMS[0];
+  const route = ROUTES[team.routeKey] || [];
+  const rideDay = route.find((d) => d.date === today);
+
+  function onSelectTeam(label: string) {
+    setTeamLabel(label);
+    try {
+      localStorage.setItem("rynkeby_team", label);
+    } catch {}
+  }
+
+  useEffect(() => {
+    if (!rideDay) {
+      setWeather(null);
+      return;
+    }
     let cancelled = false;
     setWeatherLoading(true);
     setWeatherError(false);
@@ -105,11 +164,11 @@ export default function TodayPage() {
     const url = "https://api.open-meteo.com/v1/forecast?" + params.toString();
 
     fetch(url)
-      .then(res => {
+      .then((res) => {
         if (!res.ok) throw new Error("weather fetch failed");
         return res.json();
       })
-      .then(data => {
+      .then((data) => {
         if (cancelled) return;
         const d = data.daily;
         if (!d || !d.time || d.time.length === 0) throw new Error("no data");
@@ -135,12 +194,40 @@ export default function TodayPage() {
         setWeatherLoading(false);
       });
 
-    return () => { cancelled = true; };
+    return () => {
+      cancelled = true;
+    };
   }, [rideDay]);
 
   return (
     <div style={{ color: "white", padding: "1.5rem", maxWidth: 500, margin: "0 auto" }}>
       <h1 style={{ fontSize: "1.8rem", marginBottom: "1rem" }}>🏁 Tänään</h1>
+
+      <div style={{ marginBottom: "1rem" }}>
+        <label style={{ display: "block", color: "#aaa", fontSize: "0.85rem", marginBottom: 6 }}>
+          Valitse tiimi
+        </label>
+        <select
+          value={teamLabel}
+          onChange={(e) => onSelectTeam(e.target.value)}
+          style={{
+            width: "100%",
+            padding: "0.7rem",
+            borderRadius: 8,
+            background: "#1a1a2e",
+            color: "white",
+            border: "1px solid #333",
+            fontSize: "1rem",
+          }}
+        >
+          {TEAMS.map((t) => (
+            <option key={t.label} value={t.label}>
+              {t.label}
+            </option>
+          ))}
+        </select>
+      </div>
+
       {rideDay ? (
         <>
           <div style={{ background: "#1a1a2e", borderRadius: 12, padding: "1.5rem", marginBottom: "1rem" }}>
@@ -164,23 +251,14 @@ export default function TodayPage() {
           <div style={{ background: "#16213e", borderRadius: 12, padding: "1.5rem" }}>
             <h3 style={{ fontSize: "1.2rem", marginBottom: 12 }}>🌤️ Sää — {rideDay.to}</h3>
 
-            {weatherLoading && (
-              <p style={{ color: "#aaa" }}>Haetaan säätä…</p>
-            )}
-
-            {weatherError && (
-              <p style={{ color: "#aaa" }}>Säätietoja ei juuri nyt saatavilla.</p>
-            )}
+            {weatherLoading && <p style={{ color: "#aaa" }}>Haetaan säätä…</p>}
+            {weatherError && <p style={{ color: "#aaa" }}>Säätietoja ei juuri nyt saatavilla.</p>}
 
             {weather && !weatherLoading && !weatherError && (
               <>
                 <p style={{ fontSize: "1.3rem", marginBottom: 8 }}>{weather.description}</p>
-                <p style={{ fontSize: "1.1rem", marginBottom: 6 }}>
-                  🌡️ {weather.tempMax}° / {weather.tempMin}°
-                </p>
-                <p style={{ fontSize: "1.1rem", marginBottom: 6 }}>
-                  💨 Tuuli {weather.windKmh} km/h
-                </p>
+                <p style={{ fontSize: "1.1rem", marginBottom: 6 }}>🌡️ {weather.tempMax}° / {weather.tempMin}°</p>
+                <p style={{ fontSize: "1.1rem", marginBottom: 6 }}>💨 Tuuli {weather.windKmh} km/h</p>
                 <p style={{ fontSize: "1.1rem", marginBottom: weather.warnings.length > 0 ? 14 : 0 }}>
                   🌧️ Sateen todennäköisyys {weather.precipProb}%
                 </p>
@@ -207,7 +285,7 @@ export default function TodayPage() {
         </>
       ) : (
         <div style={{ background: "#1a1a2e", borderRadius: 12, padding: "1.5rem" }}>
-          <p style={{ fontSize: "1.1rem", color: "#aaa" }}>Ei ajopäivää tänään.</p>
+          <p style={{ fontSize: "1.1rem", color: "#aaa" }}>Ei ajopäivää tänään ({team.label}).</p>
           <p style={{ marginTop: 8 }}>Ajo alkaa 4.7.2026 Kielistä! 🚴‍♂️</p>
         </div>
       )}
