@@ -185,8 +185,7 @@ export default function TodayPage() {
   }, [nextRideDay]);
 
   return (
-    <div style={{ color: "white", padding: "1.5rem 1.5rem 6rem", maxWidth: 500
-
+    <div style={{ color: "white", padding: "1.5rem 1.5rem 6rem", maxWidth: 500, margin: "0 auto" }}>
       <h1 style={{ fontSize: "1.8rem", marginBottom: "1rem" }}>🏁 Tänään</h1>
 
       <div style={{ marginBottom: "1rem" }}>
