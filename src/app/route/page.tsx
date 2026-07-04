@@ -59,7 +59,8 @@ export default function RoutePage() {
         </select>
       </div>
 
-      <div style={{ background: "#0f3460", borderRadius: 10, padding: "1rem", marginBottom: "1.2rem" }}>
+      <div style={{ background: "#0f3460", borderRadius: 10, padding: "1.5rem 1.5rem 6rem", maxWidth: 500
+
         <p style={{ fontSize: "1.05rem" }}>
           🚴 Ajopäivät: <strong>{rideDays.length}</strong> &nbsp;·&nbsp; 📏 Yhteensä: <strong>{totalKm} km</strong>
         </p>
