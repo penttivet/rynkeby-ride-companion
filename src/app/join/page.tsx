@@ -1,11 +1,11 @@
-"use client";
+ "use client";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 
 const TEAMS = [
   { id: "media", name: "Media Team", emoji: "🎥", password: "media2026" },
   { id: "oulu", name: "Team Oulu", emoji: "🚴", password: "oulu2026" },
-  { id: "jarvi-suomi", name: "Team Järvi-Suomi", emoji: "🚴", password: "jarvi2026" },
+  { id: "jarvi-suomi", name: "Team Tampere-Järvi-Suomi", emoji: "🚴", password: "jarvi2026" },
   { id: "espoo", name: "Team Espoo", emoji: "🚴", password: "espoo2026" },
   { id: "vantaa", name: "Team Vantaa", emoji: "🚴", password: "vantaa2026" },
   { id: "turku", name: "Team Turku", emoji: "🚴", password: "turku2026" },
