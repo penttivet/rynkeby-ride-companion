@@ -228,9 +228,14 @@ export default function TodayPage() {
           ) : (
             <>
               <p style={{ fontSize: "1.1rem", marginBottom: 8 }}>🚴 {rideDay.from} → {rideDay.to}</p>
-              <p style={{ fontSize: "1.1rem", marginBottom: 8 }}>📏 {rideDay.km} km</p>
-              <p style={{ fontSize: "1.1rem", marginBottom: rideDay.note ? 8 : 0 }}>🏨 {rideDay.hotel}</p>
-              {rideDay.note && <p style={{ fontSize: "1.05rem", color: "#cfcfe6" }}>{rideDay.note}</p>}
+              <p style={{ fontSize: "1.1rem", marginBottom: rideDay.hotel || rideDay.note || rideDay.routeUrl ? 8 : 0 }}>📏 {rideDay.km} km</p>
+              {rideDay.hotel && <p style={{ fontSize: "1.1rem", marginBottom: rideDay.note || rideDay.routeUrl ? 8 : 0 }}>🏨 {rideDay.hotel}</p>}
+              {rideDay.note && <p style={{ fontSize: "1.05rem", color: "#cfcfe6", marginBottom: rideDay.routeUrl ? 8 : 0 }}>{rideDay.note}</p>}
+              {rideDay.routeUrl && (
+                <a href={rideDay.routeUrl} target="_blank" rel="noopener noreferrer" style={{ display: "inline-block", color: "#3b82f6", fontSize: "1.05rem", fontWeight: 600 }}>
+                  📲 Avaa pyöräreitti · lataa GPX →
+                </a>
+              )}
             </>
           )}
         </div>
@@ -249,9 +254,16 @@ export default function TodayPage() {
           <div style={{ background: "#1a1a2e", borderRadius: 12, padding: "1.2rem", marginBottom: "1rem" }}>
             <p style={{ color: "#aaa", marginBottom: 6 }}>{nextRideDay.date} · {nextRideDay.day}</p>
             {nextRideDay.prep ? (
-              <p style={{ fontSize: "1.05rem" }}>📍 {nextRideDay.to} — 🏨 {nextRideDay.hotel}</p>
+              <p style={{ fontSize: "1.05rem" }}>📍 {nextRideDay.to}{nextRideDay.hotel ? ` — 🏨 ${nextRideDay.hotel}` : ""}</p>
             ) : (
-              <p style={{ fontSize: "1.05rem" }}>🚴 {nextRideDay.from} → {nextRideDay.to} · 📏 {nextRideDay.km} km</p>
+              <>
+                <p style={{ fontSize: "1.05rem", marginBottom: nextRideDay.routeUrl ? 8 : 0 }}>🚴 {nextRideDay.from} → {nextRideDay.to} · 📏 {nextRideDay.km} km</p>
+                {nextRideDay.routeUrl && (
+                  <a href={nextRideDay.routeUrl} target="_blank" rel="noopener noreferrer" style={{ display: "inline-block", color: "#3b82f6", fontSize: "1rem", fontWeight: 600 }}>
+                    📲 Avaa pyöräreitti · lataa GPX →
+                  </a>
+                )}
+              </>
             )}
           </div>
           <WeatherCard title="🌤️ Sää huomenna" rideDay={nextRideDay} slot={wxTomorrow} />
@@ -277,3 +289,4 @@ export default function TodayPage() {
     </div>
   );
 }
+
