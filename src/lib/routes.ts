@@ -9,6 +9,7 @@ export type RideDay = {
   lng: number;
   prep?: boolean;
   note?: string;
+  routeUrl?: string;
 };
 
 // --- Esivalmistelupäivät (yhteiset niille tiimeille jotka käyttävät pohjaa) ---
@@ -42,22 +43,46 @@ export const mediaRideDays: RideDay[] = [
   { date: "2026-07-10", day: "Päivä 7 · Maali", from: "Creil", to: "Pariisi", km: 70, hotel: "Novotel Charenton, Paris · 2 yötä", lat: 48.8566, lng: 2.3522, note: "🏁 Maali Pariisissa! 2 yötä, yövytään säätiön henkilökunnan kanssa." },
 ];
 
+// --- TAMPERE + JÄRVI-SUOMI (jakavat reitin, 5.7.–11.7.) ---
+// Reittilinkit: RideWithGPS. Ajaja voi avata reitin ja ladata GPX:n laitteeseen.
+export const jarviTampereRideDays: RideDay[] = [
+  { date: "2026-07-04", day: "Saapuminen", from: "Travemünde", to: "Lyypekki (Lübeck)", km: 20, hotel: "", lat: 53.8655, lng: 10.6866, note: "🛳️ Saapuminen satamaan illalla, siirtymä Lyypekkiin." },
+  { date: "2026-07-05", day: "Päivä 1", from: "Lyypekki", to: "Walsrode", km: 173, hotel: "", lat: 52.8622, lng: 9.5928, routeUrl: "https://ridewithgps.com/routes/55456773" },
+  { date: "2026-07-06", day: "Päivä 2", from: "Walsrode", to: "Ostbevern", km: 185, hotel: "", lat: 52.0492, lng: 7.8397, routeUrl: "https://ridewithgps.com/routes/55457151" },
+  { date: "2026-07-07", day: "Päivä 3", from: "Ostbevern", to: "Vlodrop", km: 205, hotel: "", lat: 51.1436, lng: 6.0389, routeUrl: "https://ridewithgps.com/routes/55401155" },
+  { date: "2026-07-08", day: "Päivä 4", from: "Vlodrop", to: "Anhée", km: 175, hotel: "", lat: 50.3100, lng: 4.8833, routeUrl: "https://ridewithgps.com/routes/55317651" },
+  { date: "2026-07-09", day: "Päivä 5", from: "Anhée", to: "Soissons", km: 188, hotel: "", lat: 49.3817, lng: 3.3236, routeUrl: "https://ridewithgps.com/routes/45626297" },
+  { date: "2026-07-10", day: "Päivä 6", from: "Soissons", to: "Senlis", km: 81, hotel: "", lat: 49.2069, lng: 2.5869, routeUrl: "https://ridewithgps.com/routes/55573622" },
+  { date: "2026-07-11", day: "Päivä 7 · Maali", from: "Senlis", to: "Pariisi (velodromi)", km: 68, hotel: "", lat: 48.7880, lng: 2.0367, note: "🏁 Maali velodromilla Pariisissa!", routeUrl: "https://ridewithgps.com/routes/55517183" },
+];
+
+// --- TEAM HÄME (oma reitti, 4.7.–11.7.) — GPX-tiedostoista ---
+export const hameRideDays: RideDay[] = [
+  { date: "2026-07-04", day: "Saapuminen", from: "Travemünde", to: "Lyypekki (Lübeck)", km: 23, hotel: "Traveller Hotel Lübeck", lat: 53.8514, lng: 10.6919, note: "🛳️ Saapuminen satamaan illalla, siirtymä Lyypekkiin." },
+  { date: "2026-07-05", day: "Päivä 1", from: "Lyypekki", to: "Verden", km: 175, hotel: "", lat: 52.9203, lng: 9.2274 },
+  { date: "2026-07-06", day: "Päivä 2", from: "Verden", to: "Bad Bentheim", km: 184, hotel: "", lat: 52.3016, lng: 7.1595 },
+  { date: "2026-07-07", day: "Päivä 3", from: "Bad Bentheim", to: "Baarlo", km: 152, hotel: "", lat: 51.3253, lng: 6.0824 },
+  { date: "2026-07-08", day: "Päivä 4", from: "Baarlo", to: "Namur", km: 170, hotel: "", lat: 50.4849, lng: 4.7968, note: "⛰️ Reitillä Mur de Huy." },
+  { date: "2026-07-09", day: "Päivä 5", from: "Namur", to: "Fourmies", km: 96, hotel: "", lat: 50.0081, lng: 4.0637 },
+  { date: "2026-07-10", day: "Päivä 6", from: "Fourmies", to: "Creil", km: 167, hotel: "", lat: 49.2888, lng: 2.5000 },
+  { date: "2026-07-11", day: "Päivä 7 · Maali", from: "Creil", to: "Pariisi (velodromi)", km: 74, hotel: "Kyriad Paris Est", lat: 48.8182, lng: 2.4220, note: "🏁 Maali velodromilla — Riemukaari & Eiffel-torni!" },
+];
+
 // Yhdistää esivalmistelupäivät + ajopäivät yhdeksi reitiksi.
 export function makeRoute(rideDays: RideDay[]): RideDay[] {
   return [...prepDays, ...rideDays];
 }
 
 // --- Tiimien reitit (avaimittain) ---
-// Media-tiimillä on jo oikea reitti. Muut käyttävät toistaiseksi pohjaa —
-// korvaa makeRoute(templateRideDays) -> oma reitti kun tiedät kaupungit/hotellit.
+// Media, Tampere/Järvi-Suomi ja Häme valmiit. Muut käyttävät toistaiseksi pohjaa.
 export const ROUTES: Record<string, RideDay[]> = {
   media: mediaRideDays,
   oulu: makeRoute(templateRideDays),
-  "jarvi-tampere": makeRoute(templateRideDays),
+  "jarvi-tampere": jarviTampereRideDays,
   espoo: makeRoute(templateRideDays),
   vantaa: makeRoute(templateRideDays),
   "turku-osterbothnia": makeRoute(templateRideDays),
-  hame: makeRoute(templateRideDays),
+  hame: hameRideDays,
 };
 
 // --- Tiimit (näytetään valitsimessa). Parit jakavat saman reittiavaimen. ---
