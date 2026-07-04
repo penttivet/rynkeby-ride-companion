@@ -98,8 +98,14 @@ export default function RoutePage() {
             ) : (
               <>
                 <p style={{ fontSize: "1rem", marginBottom: 4 }}>🚴 {d.from} → {d.to}</p>
-                <p style={{ fontSize: "1rem", marginBottom: 4 }}>📏 {d.km} km</p>
-                <p style={{ fontSize: "1rem" }}>🏨 {d.hotel}</p>
+                <p style={{ fontSize: "1rem", marginBottom: d.hotel || d.note || d.routeUrl ? 4 : 0 }}>📏 {d.km} km</p>
+                {d.hotel && <p style={{ fontSize: "1rem", marginBottom: d.note || d.routeUrl ? 4 : 0 }}>🏨 {d.hotel}</p>}
+                {d.note && <p style={{ fontSize: "0.95rem", color: "#cfcfe6", marginBottom: d.routeUrl ? 4 : 0 }}>{d.note}</p>}
+                {d.routeUrl && (
+                  <a href={d.routeUrl} target="_blank" rel="noopener noreferrer" style={{ display: "inline-block", color: "#3b82f6", fontSize: "0.95rem", fontWeight: 600, marginTop: 2 }}>
+                    📲 Avaa pyöräreitti · lataa GPX →
+                  </a>
+                )}
               </>
             )}
           </div>
