@@ -44,7 +44,6 @@ export const mediaRideDays: RideDay[] = [
 ];
 
 // --- TAMPERE + JÄRVI-SUOMI (jakavat reitin, 5.7.–11.7.) ---
-// Reittilinkit: RideWithGPS. Ajaja voi avata reitin ja ladata GPX:n laitteeseen.
 export const jarviTampereRideDays: RideDay[] = [
   { date: "2026-07-04", day: "Saapuminen", from: "Travemünde", to: "Lyypekki (Lübeck)", km: 20, hotel: "", lat: 53.8655, lng: 10.6866, note: "🛳️ Saapuminen satamaan illalla, siirtymä Lyypekkiin." },
   { date: "2026-07-05", day: "Päivä 1", from: "Lyypekki", to: "Walsrode", km: 173, hotel: "", lat: 52.8622, lng: 9.5928, routeUrl: "https://ridewithgps.com/routes/55456773" },
@@ -54,6 +53,18 @@ export const jarviTampereRideDays: RideDay[] = [
   { date: "2026-07-09", day: "Päivä 5", from: "Anhée", to: "Soissons", km: 188, hotel: "", lat: 49.3817, lng: 3.3236, routeUrl: "https://ridewithgps.com/routes/45626297" },
   { date: "2026-07-10", day: "Päivä 6", from: "Soissons", to: "Senlis", km: 81, hotel: "", lat: 49.2069, lng: 2.5869, routeUrl: "https://ridewithgps.com/routes/55573622" },
   { date: "2026-07-11", day: "Päivä 7 · Maali", from: "Senlis", to: "Pariisi (velodromi)", km: 68, hotel: "", lat: 48.7880, lng: 2.0367, note: "🏁 Maali velodromilla Pariisissa!", routeUrl: "https://ridewithgps.com/routes/55517183" },
+];
+
+// --- TURKU + ÖSTERBOTHNIA (jakavat reitin, "TR Ostro 2026") ---
+export const turkuOsterbothniaRideDays: RideDay[] = [
+  { date: "2026-07-04", day: "Saapuminen", from: "Travemünde", to: "Lyypekki (Lübeck)", km: 20, hotel: "", lat: 53.8655, lng: 10.6866, note: "🛳️ Saapuminen satamaan illalla, siirtymä Lyypekkiin." },
+  { date: "2026-07-05", day: "Päivä 1", from: "Lyypekki", to: "Verden", km: 183, hotel: "", lat: 52.9230, lng: 9.2350 },
+  { date: "2026-07-06", day: "Päivä 2", from: "Verden", to: "Emsdetten", km: 185, hotel: "", lat: 52.1730, lng: 7.5270 },
+  { date: "2026-07-07", day: "Päivä 3", from: "Emsdetten", to: "Sittard", km: 221, hotel: "", lat: 51.0010, lng: 5.8690 },
+  { date: "2026-07-08", day: "Päivä 4", from: "Sittard", to: "Huy (Mur de Huy)", km: 156, hotel: "", lat: 50.5185, lng: 5.2390, note: "⛰️ Mur de Huy -nousu." },
+  { date: "2026-07-09", day: "Päivä 5", from: "Dinant", to: "Reims", km: 176, hotel: "", lat: 49.2583, lng: 4.0317 },
+  { date: "2026-07-10", day: "Päivä 6", from: "Reims", to: "Chantilly", km: 145, hotel: "", lat: 49.1940, lng: 2.4600 },
+  { date: "2026-07-11", day: "Päivä 7 · Maali", from: "Chantilly", to: "Pariisi (velodromi)", km: 72, hotel: "", lat: 48.7880, lng: 2.0367, note: "🏁 Maali velodromilla Pariisissa!" },
 ];
 
 // --- TEAM HÄME (oma reitti, 4.7.–11.7.) — GPX-tiedostoista ---
@@ -74,14 +85,14 @@ export function makeRoute(rideDays: RideDay[]): RideDay[] {
 }
 
 // --- Tiimien reitit (avaimittain) ---
-// Media, Tampere/Järvi-Suomi ja Häme valmiit. Muut käyttävät toistaiseksi pohjaa.
+// Media, Tampere/Järvi-Suomi, Turku/Österbothnia ja Häme valmiit. Oulu, Espoo, Vantaa pohja.
 export const ROUTES: Record<string, RideDay[]> = {
   media: mediaRideDays,
   oulu: makeRoute(templateRideDays),
   "jarvi-tampere": jarviTampereRideDays,
   espoo: makeRoute(templateRideDays),
   vantaa: makeRoute(templateRideDays),
-  "turku-osterbothnia": makeRoute(templateRideDays),
+  "turku-osterbothnia": turkuOsterbothniaRideDays,
   hame: hameRideDays,
 };
 
@@ -92,7 +103,6 @@ export const TEAMS: { label: string; routeKey: string }[] = [
   { label: "Team Tampere-Järvi-Suomi", routeKey: "jarvi-tampere" },
   { label: "Team Espoo", routeKey: "espoo" },
   { label: "Team Vantaa", routeKey: "vantaa" },
-  { label: "Team Turku", routeKey: "turku-osterbothnia" },
-  { label: "Team Österbothnia", routeKey: "turku-osterbothnia" },
+  { label: "Team Turku-Österbothnia", routeKey: "turku-osterbothnia" },
   { label: "Team Häme", routeKey: "hame" },
 ];
