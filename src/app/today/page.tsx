@@ -158,7 +158,6 @@ export default function TodayPage() {
     } catch {}
   }
 
-  // Tämän päivän sää
   useEffect(() => {
     if (!rideDay) {
       setWxToday({ loading: false, error: false, data: null });
@@ -172,7 +171,6 @@ export default function TodayPage() {
     return () => { cancelled = true; };
   }, [rideDay]);
 
-  // Huomisen sää
   useEffect(() => {
     if (!nextRideDay) {
       setWxTomorrow({ loading: false, error: false, data: null });
@@ -289,4 +287,3 @@ export default function TodayPage() {
     </div>
   );
 }
-
