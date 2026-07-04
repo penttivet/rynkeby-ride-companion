@@ -80,13 +80,21 @@ export default function SupportPage() {
     watchRef.current = navigator.geolocation.watchPosition(
       (pos) => {
         sendLocation(currentTeamId, pos.coords.latitude, pos.coords.longitude);
+        setGpsError("");
         setTracking(true);
       },
       (err) => {
-        setGpsError("GPS-virhe: " + err.message);
-        setTracking(false);
+        if (err.code === err.TIMEOUT) {
+          // Heikko signaali (esim. sisätilat, laiva) — jatketaan yrittämistä, ei katkaista seurantaa
+          setGpsError("Heikko GPS-signaali — haetaan sijaintia… (mene lähemmäs ikkunaa tai ulos)");
+        } else if (err.code === err.PERMISSION_DENIED) {
+          setGpsError("Sijaintilupa puuttuu — salli sijainti selaimen ja puhelimen asetuksista");
+          setTracking(false);
+        } else {
+          setGpsError("GPS-virhe: " + err.message);
+        }
       },
-      { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
+      { enableHighAccuracy: true, timeout: 30000, maximumAge: 30000 }
     );
     setTracking(true);
   };
@@ -147,14 +155,17 @@ export default function SupportPage() {
           <p style={{ color: "#fff", fontWeight: 700, fontSize: "0.9rem", margin: 0 }}>
             🚗 GPS-seuranta{teamId ? ` — ${TEAM_NAMES[teamId] || teamId}` : ""}
           </p>
-          {tracking && lastUpdate && (
+          {tracking && lastUpdate && !gpsError && (
             <p style={{ color: "#10b981", fontSize: "0.75rem", margin: "2px 0 0" }}>● Aktiivinen — päivitetty {lastUpdate}</p>
+          )}
+          {tracking && !lastUpdate && !gpsError && (
+            <p style={{ color: "#f59e0b", fontSize: "0.75rem", margin: "2px 0 0" }}>Haetaan ensimmäistä sijaintia…</p>
           )}
           {!tracking && !gpsError && (
             <p style={{ color: "#8b949e", fontSize: "0.75rem", margin: "2px 0 0" }}>Käynnistä niin sijaintisi näkyy kartalla</p>
           )}
           {gpsError && (
-            <p style={{ color: "#ef4444", fontSize: "0.75rem", margin: "2px 0 0" }}>{gpsError}</p>
+            <p style={{ color: "#f59e0b", fontSize: "0.75rem", margin: "2px 0 0" }}>{gpsError}</p>
           )}
         </div>
         <button
