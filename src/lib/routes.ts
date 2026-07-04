@@ -85,12 +85,11 @@ export const ROUTES: Record<string, RideDay[]> = {
   hame: hameRideDays,
 };
 
-// --- Tiimit (näytetään valitsimessa). Parit jakavat saman reittiavaimen. ---
+// --- Tiimit (näytetään valitsimessa). ---
 export const TEAMS: { label: string; routeKey: string }[] = [
   { label: "Media Team", routeKey: "media" },
   { label: "Team Oulu", routeKey: "oulu" },
-  { label: "Team Järvi-Suomi", routeKey: "jarvi-tampere" },
-  { label: "Team Tampere", routeKey: "jarvi-tampere" },
+  { label: "Team Tampere-Järvi-Suomi", routeKey: "jarvi-tampere" },
   { label: "Team Espoo", routeKey: "espoo" },
   { label: "Team Vantaa", routeKey: "vantaa" },
   { label: "Team Turku", routeKey: "turku-osterbothnia" },
