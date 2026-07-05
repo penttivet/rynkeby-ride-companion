@@ -13,10 +13,10 @@ const statusConfig = {
 const TEAM_NAMES: Record<string, string> = {
   media: "Media Team",
   oulu: "Team Oulu",
-  "jarvi-suomi": "Team Järvi-Suomi",
+  "jarvi-suomi": "Team Tampere-Järvi-Suomi",
   espoo: "Team Espoo",
   vantaa: "Team Vantaa",
-  turku: "Team Turku",
+  turku: "Team Turku-Österbothnia",
   hame: "Team Häme",
 };
 
@@ -33,25 +33,39 @@ export default function SupportPage() {
   const [requests, setRequests] = useState<HelpRequest[]>([]);
   const [filter, setFilter] = useState<"all" | HelpRequest["status"]>("all");
 
-  // GPS tracking
   const [tracking, setTracking] = useState(false);
   const [gpsError, setGpsError] = useState("");
   const [lastUpdate, setLastUpdate] = useState("");
   const [teamId, setTeamId] = useState<string | null>(null);
   const watchRef = useRef<number | null>(null);
+  const wakeLockRef = useRef<any>(null);
+  const trackingRef = useRef<boolean>(false);
+  const teamIdRef = useRef<string | null>(null);
 
   useEffect(() => {
     setRequests(getHelpRequests());
-    setTeamId(getCurrentTeamId());
+    const tid = getCurrentTeamId();
+    setTeamId(tid);
+    teamIdRef.current = tid;
   }, []);
 
-  useEffect(() => {
-    return () => {
-      if (watchRef.current !== null) {
-        navigator.geolocation.clearWatch(watchRef.current);
+  const requestWakeLock = async () => {
+    try {
+      const nav = navigator as any;
+      if (nav.wakeLock && nav.wakeLock.request) {
+        wakeLockRef.current = await nav.wakeLock.request("screen");
       }
-    };
-  }, []);
+    } catch {}
+  };
+
+  const releaseWakeLock = async () => {
+    try {
+      if (wakeLockRef.current) {
+        await wakeLockRef.current.release();
+        wakeLockRef.current = null;
+      }
+    } catch {}
+  };
 
   const sendLocation = async (currentTeamId: string, lat: number, lng: number) => {
     try {
@@ -64,19 +78,14 @@ export default function SupportPage() {
     } catch { }
   };
 
-  const startTracking = () => {
-    const currentTeamId = getCurrentTeamId();
-    if (!currentTeamId) {
-      setGpsError("Kirjaudu ensin sisään /join-sivulla, jotta tiimisi tunnistetaan");
-      return;
-    }
-    setTeamId(currentTeamId);
-
+  const beginWatch = (currentTeamId: string) => {
     if (!navigator.geolocation) {
       setGpsError("GPS ei ole käytettävissä tässä laitteessa");
       return;
     }
-    setGpsError("");
+    if (watchRef.current !== null) {
+      navigator.geolocation.clearWatch(watchRef.current);
+    }
     watchRef.current = navigator.geolocation.watchPosition(
       (pos) => {
         sendLocation(currentTeamId, pos.coords.latitude, pos.coords.longitude);
@@ -85,28 +94,44 @@ export default function SupportPage() {
       },
       (err) => {
         if (err.code === err.TIMEOUT) {
-          // Heikko signaali (esim. sisätilat, laiva) — jatketaan yrittämistä, ei katkaista seurantaa
-          setGpsError("Heikko GPS-signaali — haetaan sijaintia… (mene lähemmäs ikkunaa tai ulos)");
+          setGpsError("Heikko GPS-signaali — haetaan sijaintia… (mene ulos / lähelle ikkunaa)");
         } else if (err.code === err.PERMISSION_DENIED) {
           setGpsError("Sijaintilupa puuttuu — salli sijainti selaimen ja puhelimen asetuksista");
           setTracking(false);
+          trackingRef.current = false;
         } else {
           setGpsError("GPS-virhe: " + err.message);
         }
       },
       { enableHighAccuracy: true, timeout: 30000, maximumAge: 30000 }
     );
+  };
+
+  const startTracking = async () => {
+    const currentTeamId = getCurrentTeamId();
+    if (!currentTeamId) {
+      setGpsError("Kirjaudu ensin sisään /join-sivulla, jotta tiimisi tunnistetaan");
+      return;
+    }
+    setTeamId(currentTeamId);
+    teamIdRef.current = currentTeamId;
+    setGpsError("");
     setTracking(true);
+    trackingRef.current = true;
+    await requestWakeLock();
+    beginWatch(currentTeamId);
   };
 
   const stopTracking = async () => {
+    trackingRef.current = false;
     if (watchRef.current !== null) {
       navigator.geolocation.clearWatch(watchRef.current);
       watchRef.current = null;
     }
+    await releaseWakeLock();
     setTracking(false);
     setLastUpdate("");
-    const currentTeamId = teamId || getCurrentTeamId();
+    const currentTeamId = teamIdRef.current || getCurrentTeamId();
     if (!currentTeamId) return;
     try {
       await fetch("/api/locations", {
@@ -116,6 +141,27 @@ export default function SupportPage() {
       });
     } catch { }
   };
+
+  useEffect(() => {
+    const onVisible = async () => {
+      if (document.visibilityState === "visible" && trackingRef.current) {
+        await requestWakeLock();
+        const tid = teamIdRef.current || getCurrentTeamId();
+        if (tid) beginWatch(tid);
+      }
+    };
+    document.addEventListener("visibilitychange", onVisible);
+    return () => document.removeEventListener("visibilitychange", onVisible);
+  }, []);
+
+  useEffect(() => {
+    return () => {
+      if (watchRef.current !== null) {
+        navigator.geolocation.clearWatch(watchRef.current);
+      }
+      releaseWakeLock();
+    };
+  }, []);
 
   const handleStatus = (id: string, status: HelpRequest["status"]) => {
     const updated = updateRequestStatus(id, status);
@@ -139,13 +185,12 @@ export default function SupportPage() {
         <p style={{ color: "#8b949e", fontSize: "0.8rem", marginTop: "2px" }}>{requests.length} total requests</p>
       </div>
 
-      {/* GPS Tracking */}
       <div style={{
         background: tracking ? "rgba(16,185,129,0.1)" : "rgba(255,255,255,0.04)",
         border: `1px solid ${tracking ? "rgba(16,185,129,0.4)" : "rgba(255,255,255,0.1)"}`,
         borderRadius: 12,
         padding: "0.85rem 1rem",
-        marginBottom: "1rem",
+        marginBottom: "0.5rem",
         display: "flex",
         alignItems: "center",
         justifyContent: "space-between",
@@ -186,7 +231,12 @@ export default function SupportPage() {
         </button>
       </div>
 
-      {/* Summary counts */}
+      {tracking && (
+        <p style={{ color: "#8b949e", fontSize: "0.72rem", margin: "0 0 1rem", lineHeight: 1.4 }}>
+          💡 Pidä appi auki ja näyttö päällä — seuranta jatkuu automaattisesti. Näppärintä: kytke laturi ja aseta Auto-Lock = Ei koskaan (Asetukset → Näyttö).
+        </p>
+      )}
+
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: "0.5rem", marginBottom: "1rem" }}>
         {(["open", "in_progress", "solved"] as const).map((s) => {
           const cfg = statusConfig[s];
@@ -199,7 +249,6 @@ export default function SupportPage() {
         })}
       </div>
 
-      {/* Filter tabs */}
       <div style={{ display: "flex", gap: "6px", marginBottom: "1rem" }}>
         {(["all", "open", "in_progress", "solved"] as const).map((f) => (
           <button
@@ -219,7 +268,6 @@ export default function SupportPage() {
         ))}
       </div>
 
-      {/* Request list */}
       <div style={{ display: "flex", flexDirection: "column", gap: "0.75rem" }}>
         {filtered.length === 0 && (
           <div style={{ textAlign: "center", padding: "3rem 1rem", color: "#8b949e" }}>
