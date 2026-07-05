@@ -2,7 +2,19 @@
 
 import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
-import { ROUTES, TEAMS, RideDay } from "@/lib/routes";
+import { ROUTES, TEAMS } from "@/lib/routes";
+
+const DAY_COLORS = ["#C8102E", "#2e7d5a", "#3b82f6", "#f59e0b", "#9b5de5", "#00bbf9", "#e07a5f", "#2a9d8f", "#d62828"];
+
+function wptEmoji(name: string, sym: string): string {
+  const s = (name + " " + sym).toLowerCase();
+  if (s.includes("kahvi") || s.includes("coffee")) return "☕";
+  if (s.includes("lounas") || s.includes("ruoka") || s.includes("food") || s.includes("restaurant") || s.includes("lunch")) return "🍽️";
+  if (s.includes("bio") || s.includes("wc") || s.includes("vessa") || s.includes("toilet") || s.includes("restroom")) return "🚻";
+  if (s.includes("vesi") || s.includes("water")) return "💧";
+  if (s.includes("tauko") || s.includes("break") || s.includes("rest")) return "⏸️";
+  return "📍";
+}
 
 export default function RoutePage() {
   const today = new Date().toISOString().split("T")[0];
@@ -34,7 +46,6 @@ export default function RoutePage() {
   const rideDays = route.filter((d) => !d.prep);
   const totalKm = rideDays.reduce((sum, d) => sum + d.km, 0);
 
-  // Lataa Leaflet-kartta CDN:stä
   useEffect(() => {
     if (!document.getElementById("leaflet-css")) {
       const link = document.createElement("link");
@@ -43,7 +54,6 @@ export default function RoutePage() {
       link.href = "https://unpkg.com/leaflet@1.9.4/dist/leaflet.css";
       document.head.appendChild(link);
     }
-
     function initMap() {
       const L = (window as any).L;
       if (!L || mapRef.current) return;
@@ -57,7 +67,6 @@ export default function RoutePage() {
       mapRef.current = map;
       setMapReady(true);
     }
-
     const w = window as any;
     if (w.L) {
       initMap();
@@ -73,40 +82,106 @@ export default function RoutePage() {
     }
   }, []);
 
-  // Piirrä valitun tiimin reittiviiva + merkit
   useEffect(() => {
     const L = (window as any).L;
     const map = mapRef.current;
     if (!L || !map) return;
 
-    layersRef.current.forEach((layer) => map.removeLayer(layer));
-    layersRef.current = [];
+    let cancelled = false;
 
-    const pts: [number, number][] = rideDays
-      .filter((d) => typeof d.lat === "number" && typeof d.lng === "number")
-      .map((d) => [d.lat, d.lng]);
+    async function draw() {
+      layersRef.current.forEach((layer) => map.removeLayer(layer));
+      layersRef.current = [];
 
-    if (pts.length === 0) return;
+      const allLatLngs: [number, number][] = [];
+      let gpxFound = 0;
 
-    const line = L.polyline(pts, { color: "#C8102E", weight: 4, opacity: 0.85 }).addTo(map);
-    layersRef.current.push(line);
+      for (let i = 0; i < rideDays.length; i++) {
+        const d = rideDays[i];
+        const color = DAY_COLORS[i % DAY_COLORS.length];
+        try {
+          const res = await fetch(`/${team.routeKey}-${d.date}.gpx`, { cache: "force-cache" });
+          if (!res.ok) continue;
+          const text = await res.text();
+          if (cancelled) return;
+          const xml = new DOMParser().parseFromString(text, "application/xml");
 
-    rideDays.forEach((d, i) => {
-      if (typeof d.lat !== "number" || typeof d.lng !== "number") return;
-      const isLast = i === rideDays.length - 1;
-      const marker = L.circleMarker([d.lat, d.lng], {
-        radius: isLast ? 7 : 5,
-        color: "#fff",
-        weight: 2,
-        fillColor: isLast ? "#2e7d5a" : "#C8102E",
-        fillOpacity: 1,
-      })
-        .addTo(map)
-        .bindPopup(`<b>${d.to}</b><br/>${d.date} · ${d.km} km`);
-      layersRef.current.push(marker);
-    });
+          const trkpts = Array.from(xml.getElementsByTagNameNS("*", "trkpt"));
+          const track: [number, number][] = trkpts.map((p) => [
+            parseFloat(p.getAttribute("lat") || "0"),
+            parseFloat(p.getAttribute("lon") || "0"),
+          ]);
+          if (track.length > 1) {
+            const line = L.polyline(track, { color, weight: 4, opacity: 0.85 }).addTo(map);
+            layersRef.current.push(line);
+            allLatLngs.push(...track);
+            gpxFound++;
+          }
 
-    map.fitBounds(line.getBounds().pad(0.15));
+          const wpts = Array.from(xml.getElementsByTagNameNS("*", "wpt"));
+          wpts.forEach((wp) => {
+            const lat = parseFloat(wp.getAttribute("lat") || "0");
+            const lng = parseFloat(wp.getAttribute("lon") || "0");
+            const nameEl = wp.getElementsByTagNameNS("*", "name")[0];
+            const symEl = wp.getElementsByTagNameNS("*", "sym")[0];
+            const name = nameEl ? nameEl.textContent || "" : "";
+            const sym = symEl ? symEl.textContent || "" : "";
+            const emoji = wptEmoji(name, sym);
+            const icon = L.divIcon({
+              html: `<div style="font-size:16px;line-height:16px">${emoji}</div>`,
+              className: "",
+              iconSize: [18, 18],
+              iconAnchor: [9, 9],
+            });
+            const m = L.marker([lat, lng], { icon }).addTo(map).bindPopup(`${emoji} ${name || "Levähdyspaikka"}<br/><span style="color:#888">${d.date}</span>`);
+            layersRef.current.push(m);
+          });
+
+          if (track.length > 0) {
+            const end = track[track.length - 1];
+            const isLast = i === rideDays.length - 1;
+            const em = L.circleMarker(end, {
+              radius: isLast ? 7 : 4,
+              color: "#fff",
+              weight: 2,
+              fillColor: isLast ? "#2e7d5a" : color,
+              fillOpacity: 1,
+            }).addTo(map).bindPopup(`<b>${d.to}</b><br/>${d.date} · ${d.km} km`);
+            layersRef.current.push(em);
+          }
+        } catch {
+        }
+      }
+
+      if (gpxFound === 0) {
+        const pts: [number, number][] = rideDays
+          .filter((d) => typeof d.lat === "number" && typeof d.lng === "number")
+          .map((d) => [d.lat, d.lng]);
+        if (pts.length > 0) {
+          const line = L.polyline(pts, { color: "#C8102E", weight: 4, opacity: 0.85 }).addTo(map);
+          layersRef.current.push(line);
+          allLatLngs.push(...pts);
+          rideDays.forEach((d, i) => {
+            const isLast = i === rideDays.length - 1;
+            const mk = L.circleMarker([d.lat, d.lng], {
+              radius: isLast ? 7 : 5,
+              color: "#fff",
+              weight: 2,
+              fillColor: isLast ? "#2e7d5a" : "#C8102E",
+              fillOpacity: 1,
+            }).addTo(map).bindPopup(`<b>${d.to}</b><br/>${d.date} · ${d.km} km`);
+            layersRef.current.push(mk);
+          });
+        }
+      }
+
+      if (allLatLngs.length > 0 && !cancelled) {
+        map.fitBounds(L.latLngBounds(allLatLngs).pad(0.12));
+      }
+    }
+
+    draw();
+    return () => { cancelled = true; };
   }, [teamLabel, mapReady]);
 
   return (
@@ -140,8 +215,11 @@ export default function RoutePage() {
 
       <div
         id="route-map"
-        style={{ height: "40vh", minHeight: 260, width: "100%", borderRadius: 12, overflow: "hidden", marginBottom: "1rem", background: "#1a1a2e" }}
+        style={{ height: "42vh", minHeight: 280, width: "100%", borderRadius: 12, overflow: "hidden", marginBottom: "0.6rem", background: "#1a1a2e" }}
       />
+      <p style={{ color: "#8b949e", fontSize: "0.75rem", marginBottom: "1rem" }}>
+        Napauta merkkiä nähdäksesi levähdyspaikan. Värillinen viiva = päivän reitti.
+      </p>
 
       <div style={{ background: "#0f3460", borderRadius: 10, padding: "1rem", marginBottom: "1.2rem" }}>
         <p style={{ fontSize: "1.05rem" }}>
@@ -216,4 +294,3 @@ export default function RoutePage() {
     </div>
   );
 }
-
