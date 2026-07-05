@@ -79,16 +79,28 @@ export const hameRideDays: RideDay[] = [
   { date: "2026-07-11", day: "Päivä 7 · Maali", from: "Creil", to: "Pariisi (velodromi)", km: 74, hotel: "Kyriad Paris Est", lat: 48.8182, lng: 2.4220, note: "🏁 Maali velodromilla — Riemukaari & Eiffel-torni!" },
 ];
 
+// --- TEAM OULU (oma reitti, 4.7.–11.7.) — GPX-tiedostoista ---
+export const ouluRideDays: RideDay[] = [
+  { date: "2026-07-04", day: "Saapuminen", from: "Travemünde", to: "Lyypekki (Lübeck)", km: 20, hotel: "", lat: 53.8655, lng: 10.6866, note: "🛳️ Saapuminen satamaan illalla, siirtymä Lyypekkiin." },
+  { date: "2026-07-05", day: "Päivä 1", from: "Lyypekki", to: "Walsrode", km: 163, hotel: "", lat: 52.8622, lng: 9.5928 },
+  { date: "2026-07-06", day: "Päivä 2", from: "Walsrode", to: "Saerbeck", km: 193, hotel: "", lat: 52.1743, lng: 7.5309 },
+  { date: "2026-07-07", day: "Päivä 3", from: "Saerbeck", to: "Roermond", km: 193, hotel: "", lat: 51.1942, lng: 6.0032 },
+  { date: "2026-07-08", day: "Päivä 4", from: "Roermond", to: "Dinant", km: 182, hotel: "", lat: 50.2606, lng: 4.9127 },
+  { date: "2026-07-09", day: "Päivä 5", from: "Dinant", to: "Laon", km: 156, hotel: "", lat: 49.5641, lng: 3.6208 },
+  { date: "2026-07-10", day: "Päivä 6", from: "Laon", to: "Meaux", km: 97, hotel: "", lat: 48.9606, lng: 2.8779 },
+  { date: "2026-07-11", day: "Päivä 7 · Maali", from: "Meaux", to: "Pariisi (velodromi)", km: 70, hotel: "", lat: 48.7880, lng: 2.0367, note: "🏁 Maali velodromilla — reitti kulkee Eiffel-tornin ohi!" },
+];
+
 // Yhdistää esivalmistelupäivät + ajopäivät yhdeksi reitiksi.
 export function makeRoute(rideDays: RideDay[]): RideDay[] {
   return [...prepDays, ...rideDays];
 }
 
 // --- Tiimien reitit (avaimittain) ---
-// Media, Tampere/Järvi-Suomi, Turku/Österbothnia ja Häme valmiit. Oulu, Espoo, Vantaa pohja.
+// Media, Tampere/Järvi-Suomi, Turku/Österbothnia, Häme ja Oulu valmiit. Espoo, Vantaa pohja.
 export const ROUTES: Record<string, RideDay[]> = {
   media: mediaRideDays,
-  oulu: makeRoute(templateRideDays),
+  oulu: ouluRideDays,
   "jarvi-tampere": jarviTampereRideDays,
   espoo: makeRoute(templateRideDays),
   vantaa: makeRoute(templateRideDays),
