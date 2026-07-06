@@ -3,6 +3,7 @@ import "./globals.css";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Suspense } from "react";
+import { GpsTrackingProvider } from "@/lib/GpsTrackingContext";
 
 const navItems = [
   { href: "/today", label: "Today", icon: "🏁" },
@@ -80,10 +81,12 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <title>Rynkeby Ride Companion</title>
       </head>
       <body>
-        <main>{children}</main>
-        <Suspense fallback={null}>
-          <BottomNav />
-        </Suspense>
+        <GpsTrackingProvider>
+          <main>{children}</main>
+          <Suspense fallback={null}>
+            <BottomNav />
+          </Suspense>
+        </GpsTrackingProvider>
       </body>
     </html>
   );
