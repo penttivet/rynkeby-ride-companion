@@ -12,6 +12,7 @@ const navItems = [
   { href: "/team", label: "Team", icon: "🚴" },
   { href: "/translate", label: "Translate", icon: "🌍" },
   { href: "/map", label: "Map", icon: "🗺️" },
+  { href: "/laulut", label: "Laulut", icon: "🎵" },
   { href: "/support", label: "Support", icon: "🚗" },
 ];
 
