@@ -52,7 +52,7 @@ export const jarviTampereRideDays: RideDay[] = [
   { date: "2026-07-08", day: "Päivä 4", from: "Vlodrop", to: "Anhée", km: 175, hotel: "", lat: 50.3100, lng: 4.8833, routeUrl: "https://ridewithgps.com/routes/55317651" },
   { date: "2026-07-09", day: "Päivä 5", from: "Anhée", to: "Soissons", km: 188, hotel: "", lat: 49.3817, lng: 3.3236, routeUrl: "https://ridewithgps.com/routes/45626297" },
   { date: "2026-07-10", day: "Päivä 6", from: "Soissons", to: "Senlis", km: 81, hotel: "", lat: 49.2069, lng: 2.5869, routeUrl: "https://ridewithgps.com/routes/55573622" },
-  { date: "2026-07-11", day: "Päivä 7 · Maali", from: "Senlis", to: "Pariisi (velodromi)", km: 68, hotel: "", lat: 48.7880, lng: 2.0367, note: "🏁 Maali velodromilla Pariisissa!", routeUrl: "https://ridewithgps.com/routes/55517183" },
+  { date: "2026-07-11", day: "Päivä 7 · Maali", from: "Senlis", to: "Pariisi (velodromi)", km: 68, hotel: "", lat: 48.827227, lng: 2.411673, note: "🏁 Maali velodromilla Pariisissa!", routeUrl: "https://ridewithgps.com/routes/55517183" },
 ];
 
 // --- TURKU + ÖSTERBOTHNIA (jakavat reitin, "TR Ostro 2026") ---
@@ -64,7 +64,7 @@ export const turkuOsterbothniaRideDays: RideDay[] = [
   { date: "2026-07-08", day: "Päivä 4", from: "Sittard", to: "Huy (Mur de Huy)", km: 156, hotel: "", lat: 50.5185, lng: 5.2390, note: "⛰️ Mur de Huy -nousu." },
   { date: "2026-07-09", day: "Päivä 5", from: "Dinant", to: "Reims", km: 176, hotel: "", lat: 49.2583, lng: 4.0317 },
   { date: "2026-07-10", day: "Päivä 6", from: "Reims", to: "Chantilly", km: 145, hotel: "", lat: 49.1940, lng: 2.4600 },
-  { date: "2026-07-11", day: "Päivä 7 · Maali", from: "Chantilly", to: "Pariisi (velodromi)", km: 72, hotel: "", lat: 48.7880, lng: 2.0367, note: "🏁 Maali velodromilla Pariisissa!" },
+  { date: "2026-07-11", day: "Päivä 7 · Maali", from: "Chantilly", to: "Pariisi (velodromi)", km: 72, hotel: "", lat: 48.827227, lng: 2.411673, note: "🏁 Maali velodromilla Pariisissa!" },
 ];
 
 // --- TEAM HÄME (oma reitti, 4.7.–11.7.) — GPX-tiedostoista ---
@@ -88,7 +88,7 @@ export const ouluRideDays: RideDay[] = [
   { date: "2026-07-08", day: "Päivä 4", from: "Roermond", to: "Dinant", km: 182, hotel: "", lat: 50.2606, lng: 4.9127 },
   { date: "2026-07-09", day: "Päivä 5", from: "Dinant", to: "Laon", km: 156, hotel: "", lat: 49.5641, lng: 3.6208 },
   { date: "2026-07-10", day: "Päivä 6", from: "Laon", to: "Meaux", km: 97, hotel: "", lat: 48.9606, lng: 2.8779 },
-  { date: "2026-07-11", day: "Päivä 7 · Maali", from: "Meaux", to: "Pariisi (velodromi)", km: 70, hotel: "", lat: 48.7880, lng: 2.0367, note: "🏁 Maali velodromilla — reitti kulkee Eiffel-tornin ohi!" },
+  { date: "2026-07-11", day: "Päivä 7 · Maali", from: "Meaux", to: "Pariisi (velodromi)", km: 70, hotel: "", lat: 48.827227, lng: 2.411673, note: "🏁 Maali velodromilla — reitti kulkee Eiffel-tornin ohi!" },
 ];
 
 // Yhdistää esivalmistelupäivät + ajopäivät yhdeksi reitiksi.
