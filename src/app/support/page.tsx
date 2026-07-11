@@ -21,15 +21,65 @@ const TEAM_NAMES: Record<string, string> = {
   hame: "Team Häme",
 };
 
+function getCurrentTeamId(): string | null {
+  try {
+    const user = JSON.parse(localStorage.getItem("rynkeby_user") || "{}");
+    return user.teamId || null;
+  } catch {
+    return null;
+  }
+}
+
 export default function SupportPage() {
   const [requests, setRequests] = useState<HelpRequest[]>([]);
   const [filter, setFilter] = useState<"all" | HelpRequest["status"]>("all");
 
   const { tracking, gpsError, lastUpdate, teamId, startTracking, stopTracking } = useGpsTracking();
 
+  // --- Find My / muu jakolinkki -lomake ---
+  const [fmName, setFmName] = useState("");
+  const [fmUrl, setFmUrl] = useState("");
+  const [fmSaving, setFmSaving] = useState(false);
+  const [fmSaved, setFmSaved] = useState(false);
+  const [fmError, setFmError] = useState("");
+
   useEffect(() => {
     setRequests(getHelpRequests());
+    const savedName = localStorage.getItem("rynkeby_findmy_name");
+    const savedUrl = localStorage.getItem("rynkeby_findmy_url");
+    if (savedName) setFmName(savedName);
+    if (savedUrl) setFmUrl(savedUrl);
   }, []);
+
+  const saveFindMyLink = async () => {
+    const currentTeamId = getCurrentTeamId();
+    if (!currentTeamId) {
+      setFmError("Kirjaudu ensin sisään /join-sivulla");
+      return;
+    }
+    if (!fmName.trim() || !fmUrl.trim()) {
+      setFmError("Täytä sekä nimi että linkki");
+      return;
+    }
+    setFmSaving(true);
+    setFmError("");
+    try {
+      const res = await fetch("/api/findmy", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ teamId: currentTeamId, name: fmName.trim(), url: fmUrl.trim() }),
+      });
+      if (!res.ok) throw new Error();
+      localStorage.setItem("rynkeby_findmy_name", fmName.trim());
+      localStorage.setItem("rynkeby_findmy_url", fmUrl.trim());
+      setFmSaved(true);
+      setTimeout(() => setFmSaved(false), 3000);
+    } catch {
+      setFmError("Tallennus epäonnistui — yritä uudelleen");
+    } finally {
+      setFmSaving(false);
+    }
+  };
 
   const handleStatus = (id: string, status: HelpRequest["status"]) => {
     const updated = updateRequestStatus(id, status);
@@ -104,6 +154,55 @@ export default function SupportPage() {
           💡 Seuranta jatkuu vaikka vaihdat sivua sovelluksen sisällä. Jos poistut sovelluksesta kokonaan (esim. Kuvat-appiin) tai lukitset puhelimen, iOS voi keskeyttää seurannan — pidä appi auki taustalla parhaan tuloksen saamiseksi. Näppärintä: kytke laturi ja aseta Auto-Lock = Ei koskaan (Asetukset → Näyttö).
         </p>
       )}
+
+      {/* --- Find My / muu jakolinkki: luotettava varajärjestelmä pitkille ajopäiville --- */}
+      <div style={{
+        background: "rgba(255,255,255,0.04)",
+        border: "1px solid rgba(255,255,255,0.1)",
+        borderRadius: 12,
+        padding: "0.85rem 1rem",
+        marginBottom: "1rem",
+      }}>
+        <p style={{ color: "#fff", fontWeight: 700, fontSize: "0.9rem", margin: "0 0 4px" }}>
+          📍 Löydä-sijainti (varajärjestelmä)
+        </p>
+        <p style={{ color: "#8b949e", fontSize: "0.75rem", margin: "0 0 10px", lineHeight: 1.4 }}>
+          Yllä oleva GPS-seuranta voi katketa jos puhelin lukittuu pitkän ajopäivän aikana. Jaa sijaintisi myös Find My- tai WhatsApp-live-sijaintina, ja liitä tähän jakolinkki — se näkyy sitten perheelle Seuraa-sivulla varmuuden vuoksi.
+        </p>
+        <input
+          type="text"
+          placeholder="Nimesi"
+          value={fmName}
+          onChange={(e) => setFmName(e.target.value)}
+          style={{
+            width: "100%", padding: "8px 10px", borderRadius: 8, marginBottom: 8,
+            border: "1px solid rgba(255,255,255,0.15)", background: "#0d1117", color: "#f0f6fc", fontSize: "0.85rem",
+          }}
+        />
+        <input
+          type="url"
+          placeholder="Jakolinkki (Find My / WhatsApp / Google Maps)"
+          value={fmUrl}
+          onChange={(e) => setFmUrl(e.target.value)}
+          style={{
+            width: "100%", padding: "8px 10px", borderRadius: 8, marginBottom: 8,
+            border: "1px solid rgba(255,255,255,0.15)", background: "#0d1117", color: "#f0f6fc", fontSize: "0.85rem",
+          }}
+        />
+        {fmError && <p style={{ color: "#f59e0b", fontSize: "0.75rem", margin: "0 0 8px" }}>{fmError}</p>}
+        {fmSaved && <p style={{ color: "#10b981", fontSize: "0.75rem", margin: "0 0 8px" }}>✓ Tallennettu</p>}
+        <button
+          onClick={saveFindMyLink}
+          disabled={fmSaving}
+          style={{
+            width: "100%", padding: "9px", borderRadius: 8, border: "none",
+            background: "#3b82f6", color: "#fff", fontWeight: 700, fontSize: "0.85rem",
+            cursor: fmSaving ? "default" : "pointer", opacity: fmSaving ? 0.6 : 1,
+          }}
+        >
+          {fmSaving ? "Tallennetaan…" : "Tallenna jakolinkki"}
+        </button>
+      </div>
 
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: "0.5rem", marginBottom: "1rem" }}>
         {(["open", "in_progress", "solved"] as const).map((s) => {
